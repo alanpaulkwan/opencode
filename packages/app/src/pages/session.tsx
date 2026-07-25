@@ -99,6 +99,7 @@ import { Persist, persisted } from "@/utils/persist"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { formatServerError, isLocalSessionNotFoundError, isSessionNotFoundError } from "@/utils/server-errors"
 import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
+import { canMoveSessionToWorkspace, WorkspaceOperation } from "@/utils/workspace-operation"
 import { useUsageExceededDialogs } from "./session/usage-exceeded-dialogs"
 import { createSessionOwnership } from "./session/session-ownership"
 import { createSessionLineage } from "./session/session-lineage"
@@ -599,6 +600,7 @@ export default function Page() {
   const [store, setStore] = createStore({
     ...sessionViewState(),
     newSessionWorktree: "main",
+    sessionDetailsOpen: false,
     deferRender: false,
   })
 
@@ -698,6 +700,19 @@ export default function Page() {
         : skipToken,
     }
   })
+  const sessionDetailsQuery = createQuery(() => ({
+    queryKey: [...vcsKey(), "git"] as const,
+    enabled: store.sessionDetailsOpen && sync().project?.vcs === "git",
+    queryFn: () =>
+      sdk()
+        .api.vcs.diff({ location: { directory: sdk().directory }, mode: "working" })
+        .then((result) => result.data)
+        .catch((error) => {
+          console.debug("[session-review] failed to load session details diff", { error })
+          return []
+        }),
+  }))
+  const sessionDetailsDiffs = () => (sessionDetailsQuery.isFetched ? (sessionDetailsQuery.data ?? []) : [])
   const refreshVcs = debounce(() => void queryClient.invalidateQueries({ queryKey: vcsKey() }), 100)
   const reviewDiffs = () => {
     if (reviewMode() === "git" || reviewMode() === "branch")
@@ -1700,6 +1715,8 @@ export default function Page() {
   }
 
   const busy = (sessionID: string) => sync().data.session_working(sessionID)
+  const workspaceOperationPending = (sessionID: string) =>
+    WorkspaceOperation.get(serverSDK().scope, sessionID)?.status === "pending"
 
   const queuedFollowups = createMemo(() => {
     const id = params.id
@@ -1713,8 +1730,20 @@ export default function Page() {
     return followup.edit[id]
   })
 
+  const workspaceMoveEligible = createMemo(() => {
+    const id = params.id
+    if (!id) return false
+    return canMoveSessionToWorkspace({
+      queued: followup.items[id]?.length ?? 0,
+      failed: !!followup.failed[id],
+      paused: !!followup.paused[id],
+      editing: !!followup.edit[id],
+    })
+  })
+
   const followupMutation = useMutation(() => ({
     mutationFn: async (input: { sessionID: string; id: string; manual?: boolean }) => {
+      if (workspaceOperationPending(input.sessionID)) return
       const owner = sessionOwnership.capture()
       const item = (followup.items[input.sessionID] ?? []).find((entry) => entry.id === input.id)
       if (!item) return
@@ -1724,6 +1753,7 @@ export default function Page() {
 
       const ok = await sendFollowupDraft({
         api: sdk().api.session,
+        scope: serverSDK().scope,
         sync: sync(),
         serverSync: serverSync(),
         draft: item,
@@ -1786,6 +1816,7 @@ export default function Page() {
 
   const sendFollowup = (sessionID: string, id: string, opts?: { manual?: boolean }) => {
     if (sync().session.get(sessionID)?.parentID) return Promise.resolve()
+    if (workspaceOperationPending(sessionID)) return Promise.resolve()
     const item = (followup.items[sessionID] ?? []).find((entry) => entry.id === id)
     if (!item) return Promise.resolve()
     if (followupBusy(sessionID)) return Promise.resolve()
@@ -1825,6 +1856,7 @@ export default function Page() {
 
   const revertMutation = useMutation(() => ({
     mutationFn: async (input: { sessionID: string; messageID: string }) => {
+      if (workspaceOperationPending(input.sessionID)) return
       const session = sdk().api.session
       const target = sync()
       const last = target.session.get(input.sessionID)?.revert
@@ -1847,6 +1879,7 @@ export default function Page() {
     mutationFn: async (id: string) => {
       const sessionID = params.id
       if (!sessionID) return
+      if (workspaceOperationPending(sessionID)) return
 
       const session = sdk().api.session
       const target = sync()
@@ -1874,7 +1907,10 @@ export default function Page() {
     },
   }))
 
-  const reverting = createMemo(() => revertMutation.isPending || restoreMutation.isPending)
+  const reverting = createMemo(() => {
+    const id = params.id
+    return revertMutation.isPending || restoreMutation.isPending || (!!id && workspaceOperationPending(id))
+  })
   const restoring = createMemo(() => (restoreMutation.isPending ? restoreMutation.variables : undefined))
 
   const revert = (input: { sessionID: string; messageID: string }) => {
@@ -1932,6 +1968,7 @@ export default function Page() {
     if (isChildSession()) return
     if (composer.blocked()) return
     if (busy(sessionID)) return
+    if (workspaceOperationPending(sessionID)) return
 
     void sendFollowup(sessionID, item.id)
   })
@@ -2102,6 +2139,9 @@ export default function Page() {
                     if (root) scheduleScrollState(root)
                   }}
                   userMessages={visibleUserMessages()}
+                  diffs={sessionDetailsDiffs}
+                  workspaceMoveEligible={workspaceMoveEligible()}
+                  onSummaryOpenChange={(open) => setStore("sessionDetailsOpen", open)}
                   setHistoryAnchor={(handlers) => {
                     captureHistoryAnchor = handlers.capture
                     restoreHistoryAnchor = handlers.restore

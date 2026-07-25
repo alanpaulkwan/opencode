@@ -829,6 +829,12 @@ export const dict = {
   "session.delete.button": "Slett sesjon",
 
   "workspace.new": "Nytt arbeidsområde",
+  "workspace.move.title": "Flytt til arbeidsområde",
+  "workspace.move.failed": "Kunne ikke flytte økten",
+  "workspace.lifecycle.creating": "Oppretter arbeidsområde",
+  "workspace.lifecycle.created": "Arbeidsområdet er opprettet",
+  "workspace.lifecycle.moving": "Flytter til arbeidsområde",
+  "workspace.lifecycle.set": "Arbeidsområdet er angitt",
   "workspace.type.local": "lokal",
   "workspace.type.sandbox": "sandkasse",
   "workspace.create.failed.title": "Kunne ikke opprette arbeidsområde",

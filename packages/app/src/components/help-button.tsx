@@ -8,9 +8,6 @@ import introducingTabsVideo from "@/assets/help/introducing-tabs.mp4"
 import homeImage from "@/assets/help/home.png"
 import tabsImage from "@/assets/help/tabs.png"
 
-// TODO: wire to changelog / seen-state when available
-const showPopover = () => true
-
 // can remove this after the tabs rollout has been out for a while
 export function TabsInfoPopup() {
   const settings = useSettings()
@@ -135,11 +132,6 @@ export function TabsInfoPopup() {
             </p>
             <img src={homeImage} alt="" class="aspect-video w-full rounded-[6px] object-cover" />
             <p>When you reopen the app, your tabs are still open.</p>
-            <p>
-              The new design does not support Git Worktrees yet, it's coming soon. So if you'd prefer to continue using
-              the previous layout, you can switch between layouts in Settings. Just keep in mind that the new layout
-              will become permanent in a few weeks.
-            </p>
           </div>
         </div>
       </DrawerContent>

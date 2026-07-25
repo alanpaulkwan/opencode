@@ -992,6 +992,12 @@ export const dict = {
   "session.delete.button": "Eliminar sesión",
 
   "workspace.new": "Nuevo espacio de trabajo",
+  "workspace.move.title": "Mover al espacio de trabajo",
+  "workspace.move.failed": "No se pudo mover la sesión",
+  "workspace.lifecycle.creating": "Creando espacio de trabajo",
+  "workspace.lifecycle.created": "Espacio de trabajo creado",
+  "workspace.lifecycle.moving": "Moviendo al espacio de trabajo",
+  "workspace.lifecycle.set": "Espacio de trabajo establecido",
   "workspace.type.local": "local",
   "workspace.type.sandbox": "sandbox",
   "workspace.create.failed.title": "Fallo al crear espacio de trabajo",

@@ -971,6 +971,12 @@ export const dict = {
   "session.delete.button": "ลบเซสชัน",
 
   "workspace.new": "พื้นที่ทำงานใหม่",
+  "workspace.move.title": "ย้ายไปยังพื้นที่ทำงาน",
+  "workspace.move.failed": "ย้ายเซสชันไม่สำเร็จ",
+  "workspace.lifecycle.creating": "กำลังสร้างพื้นที่ทำงาน",
+  "workspace.lifecycle.created": "สร้างพื้นที่ทำงานแล้ว",
+  "workspace.lifecycle.moving": "กำลังย้ายไปยังพื้นที่ทำงาน",
+  "workspace.lifecycle.set": "ตั้งค่าพื้นที่ทำงานแล้ว",
   "workspace.type.local": "ในเครื่อง",
   "workspace.type.sandbox": "แซนด์บ็อกซ์",
   "workspace.create.failed.title": "ไม่สามารถสร้างพื้นที่ทำงาน",

@@ -1078,6 +1078,12 @@ export const dict = {
   "session.delete.button": "Видалити сесію",
 
   "workspace.new": "Нова робоча область",
+  "workspace.move.title": "Перемістити до робочого простору",
+  "workspace.move.failed": "Не вдалося перемістити сеанс",
+  "workspace.lifecycle.creating": "Створення робочого простору",
+  "workspace.lifecycle.created": "Робочий простір створено",
+  "workspace.lifecycle.moving": "Переміщення до робочого простору",
+  "workspace.lifecycle.set": "Робочий простір установлено",
   "workspace.type.local": "локальна",
   "workspace.type.sandbox": "пісочниця",
   "workspace.create.failed.title": "Не вдалося створити робочу область",

@@ -62,6 +62,7 @@ import { useDirectoryPicker } from "@/components/directory-picker"
 import { ServerConnection, useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
 import { pathKey } from "@/utils/path-key"
+import { WorkspaceOperation } from "@/utils/workspace-operation"
 import {
   displayName,
   effectiveWorkspaceOrder,
@@ -872,6 +873,7 @@ export default function LegacyLayout(props: ParentProps) {
   }
 
   async function archiveSession(session: Session) {
+    if (WorkspaceOperation.get(serverSDK().scope, session.id)?.status === "pending") return
     const [store, setStore] = serverSync().child(session.directory)
     const sessions = store.session ?? []
     const index = sessions.findIndex((s) => s.id === session.id)

@@ -1,4 +1,4 @@
-import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, untrack } from "solid-js"
+import { Show, createEffect, createMemo, createResource, createSignal, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
 import { useSearchParams } from "@solidjs/router"
@@ -34,10 +34,10 @@ import { Persist, persisted } from "@/utils/persist"
 import createPresence from "solid-presence"
 import { useLocal } from "@/context/local"
 import { createPromptModelSelection } from "@/pages/session/composer/prompt-model-selection"
+import { useTabs, type DraftTab } from "@/context/tabs"
+import { isWorkspaceSelection } from "@/utils/workspace"
 
-const workspaceBarEnabled = import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"
 const providerTipDismissalDuration = 30 * 24 * 60 * 60 * 1000
-const providerTipExitDuration = 250
 
 /**
  * The `/new-session` draft page. Unlike `session.tsx`, this only renders the prompt
@@ -63,6 +63,7 @@ export default function NewSessionPage() {
   useSettingsCommand()
   const route = useSessionKey()
   const [searchParams, setSearchParams] = useSearchParams<{ draftId?: string; prompt?: string }>()
+  const tabs = useTabs()
   const local = useLocal()
   const model = createPromptModelSelection({ agent: local.agent.current })
 
@@ -76,13 +77,26 @@ export default function NewSessionPage() {
   })
   const projectControls = createPromptProjectControls()
 
-  const [store, setStore] = createStore<{ worktree?: string }>({})
   const rightMount = useTitlebarRightMount()
-
-  const showWorkspaceBar = createMemo(() => workspaceBarEnabled && sync().project?.vcs === "git")
+  const draft = createMemo(() =>
+    tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === searchParams.draftId),
+  )
+  const setWorktree = (worktree: string | undefined) => {
+    const id = searchParams.draftId
+    if (!id) return
+    tabs.updateDraft(id, { worktree })
+  }
+  const showWorkspaceBar = createMemo(() => sync().project?.vcs === "git")
+  const selectedWorktree = createMemo(() => {
+    const project = sync().project
+    const worktree = draft()?.worktree
+    if (!project || !worktree) return undefined
+    return isWorkspaceSelection(project, worktree) ? worktree : undefined
+  })
   const newSessionWorktree = createMemo(() => {
     if (!showWorkspaceBar()) return "main"
-    if (store.worktree) return store.worktree
+    const worktree = selectedWorktree()
+    if (worktree) return worktree
     const project = sync().project
     if (project && sdk().directory !== project.worktree) return sdk().directory
     return "main"
@@ -92,8 +106,12 @@ export default function NewSessionPage() {
   const selectedBranch = createMemo(() => {
     const worktree = newSessionWorktree()
     if (worktree === "main" || worktree === "create") return localBranch()
-    return serverSync().child(worktree)[0].vcs?.branch ?? localBranch()
+    return serverSync().child(worktree)[0].vcs?.branch
   })
+  const selectWorktree = (worktree: string) => {
+    const project = sync().project
+    setWorktree(worktree === "main" && project?.worktree !== sdk().directory ? project?.worktree : worktree)
+  }
   const promptInputV2Controller = usePromptInputV2Controller({
     get controls() {
       return inputController()
@@ -101,8 +119,8 @@ export default function NewSessionPage() {
     get newSessionWorktree() {
       return newSessionWorktree()
     },
-    onNewSessionWorktreeReset: () => setStore("worktree", undefined),
-    onSubmit: () => comments.clear(),
+    onNewSessionWorktreeReset: () => setWorktree(undefined),
+    onSubmit: comments.clear,
   })
   const projectController = createPromptProjectController({
     controls: projectControls,
@@ -185,14 +203,7 @@ export default function NewSessionPage() {
                           projectRoot={projectRoot()}
                           workspaces={sync().project?.sandboxes ?? []}
                           branch={selectedBranch()}
-                          onChange={(value) =>
-                            setStore(
-                              "worktree",
-                              value === "main" && sync().project?.worktree !== sdk().directory
-                                ? sync().project?.worktree
-                                : value,
-                            )
-                          }
+                          onChange={selectWorktree}
                           onDone={promptInputV2Controller.restoreFocus}
                         />
                       </Show>

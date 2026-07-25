@@ -960,6 +960,12 @@ export const dict = {
   "session.delete.button": "刪除工作階段",
 
   "workspace.new": "新增工作區",
+  "workspace.move.title": "移動到工作區",
+  "workspace.move.failed": "無法移動工作階段",
+  "workspace.lifecycle.creating": "正在建立工作區",
+  "workspace.lifecycle.created": "工作區已建立",
+  "workspace.lifecycle.moving": "正在移動到工作區",
+  "workspace.lifecycle.set": "工作區已設定",
   "workspace.type.local": "本地",
   "workspace.type.sandbox": "沙盒",
   "workspace.create.failed.title": "建立工作區失敗",

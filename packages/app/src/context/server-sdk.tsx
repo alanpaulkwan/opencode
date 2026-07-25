@@ -13,6 +13,8 @@ import { useGlobal } from "./global"
 import { ServerScope } from "@/utils/server-scope"
 import { detectServerProtocol, type ServerProtocol } from "@/utils/server-protocol"
 import { createCompatibleApi, type CompatibleApi } from "@/utils/server-compat"
+import { Worktree } from "@/utils/worktree"
+import { WorkspaceOperation } from "@/utils/workspace-operation"
 
 const isAbortError = (error: unknown) =>
   error !== null && typeof error === "object" && "name" in error && error.name === "AbortError"
@@ -138,6 +140,34 @@ export function coalesceServerEvents(events: QueuedServerEvent[]) {
   return output
 }
 
+export function applyWorktreeEvent(scope: ServerScope, event: QueuedServerEvent, fallback: string) {
+  if (event.payload.type === "worktree.ready") {
+    const pending = Worktree.get(scope, event.directory)?.status === "pending"
+    Worktree.ready(scope, event.directory)
+    if (pending) WorkspaceOperation.completeCreate(scope, event.directory)
+    return true
+  }
+  if (event.payload.type !== "worktree.failed") return false
+  const message = event.payload.properties.message ?? fallback
+  Worktree.failed(scope, event.directory, message)
+  WorkspaceOperation.failCreate(scope, event.directory, message)
+  return true
+}
+
+export function applyWorkspaceOperationEvent(scope: ServerScope, event: QueuedServerEvent) {
+  if (event.payload.current?.type === "session.moved") {
+    WorkspaceOperation.complete(
+      scope,
+      event.payload.current.data.sessionID,
+      event.payload.current.data.location.directory,
+    )
+    return true
+  }
+  if (event.payload.type !== "session.next.moved") return false
+  WorkspaceOperation.complete(scope, event.payload.properties.sessionID, event.payload.properties.location.directory)
+  return true
+}
+
 function currentDelta(event: OpenCodeEvent | undefined): CurrentDelta | undefined {
   if (
     event?.type === "session.text.delta" ||
@@ -186,6 +216,7 @@ type ServerSDKBase = {
 
 function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerScope): ServerSDKBase {
   const platform = usePlatform()
+  const language = useLanguage()
   const abort = new AbortController()
 
   const eventFetch = (() => {
@@ -238,7 +269,11 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
     last = Date.now()
     const output = coalesceServerEvents(events)
     batch(() => {
-      output.forEach((event) => emitter.emit(event.directory, event.payload))
+      output.forEach((event) => {
+        applyWorktreeEvent(scope, event, language.t("common.requestFailed"))
+        applyWorkspaceOperationEvent(scope, event)
+        emitter.emit(event.directory, event.payload)
+      })
     })
 
     buffer.length = 0
@@ -433,6 +468,14 @@ function createDirSdkContext(directory: string, serverSDK: ServerSDKBase) {
       legacy: (next) => serverSDK.createClient({ directory: next ?? directory, throwOnError: true }),
       directory,
     }),
+    createApi(next: string) {
+      return createCompatibleApi({
+        protocol: serverSDK.protocol,
+        current: serverSDK.currentApi,
+        legacy: (target) => serverSDK.createClient({ directory: target ?? next, throwOnError: true }),
+        directory: next,
+      })
+    },
     event: emitter,
     get url() {
       return serverSDK.url

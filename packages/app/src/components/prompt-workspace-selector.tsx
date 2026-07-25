@@ -1,8 +1,7 @@
-import { For, Show } from "solid-js"
+import { createMemo, createSignal, For, Show } from "solid-js"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
-import { Icon } from "@opencode-ai/ui/icon"
-import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/v2/icon"
 import { getFilename } from "@opencode-ai/core/util/path"
 import { useLanguage } from "@/context/language"
 
@@ -15,25 +14,33 @@ export function PromptWorkspaceSelector(props: {
   onDone: () => void
 }) {
   const language = useLanguage()
-  let pending: string | undefined
+  const [search, setSearch] = createSignal("")
+  let pending: { type: "select"; value: string } | undefined
   const selected = () => (props.value === props.projectRoot ? "main" : props.value)
+  const workspaces = createMemo(() => {
+    const query = search().trim().toLowerCase()
+    if (!query) return props.workspaces
+    return props.workspaces.filter((workspace) => getFilename(workspace).toLowerCase().includes(query))
+  })
   const icon = () => {
     if (selected() === "main") return "monitor"
-    if (selected() === "create") return "workspace-new"
-    return "workspace"
+    return "workspace-isolated"
   }
   const select = (value: string) => {
-    pending = value
+    pending = { type: "select", value }
   }
   const onOpenChange = (open: boolean) => {
-    if (open) return
-    const value = pending
+    if (open) {
+      setSearch("")
+      return
+    }
+    const action = pending
     pending = undefined
-    if (value) props.onChange(value)
+    if (action?.type === "select") props.onChange(action.value)
     props.onDone()
   }
   const label = () => {
-    if (selected() === "main") return language.t("session.new.workspace.triggerLocal")
+    if (selected() === "main") return language.t("workspace.type.local")
     if (props.value === "create") return language.t("workspace.new")
     return getFilename(props.value)
   }
@@ -42,9 +49,9 @@ export function PromptWorkspaceSelector(props: {
     <>
       <span class="hidden select-none opacity-50 sm:inline mx-1">/</span>
       <MenuV2 placement="bottom" gutter={4} onOpenChange={onOpenChange}>
-        <MenuV2.Trigger class="flex h-7 min-w-0 max-w-[203px] items-center gap-1.5 rounded-sm px-1.5 hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed data-[expanded]:text-v2-text-text-muted">
-          <IconV2 name={icon()} class="shrink-0 text-v2-icon-icon-muted" />
-          <span class="min-w-0 truncate">{label()}</span>
+        <MenuV2.Trigger class="flex h-6 min-w-0 max-w-[203px] items-center gap-1.5 rounded-sm px-1.5 hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed data-[expanded]:text-v2-text-text-muted">
+          <Icon name={icon()} class="shrink-0 text-v2-icon-icon-muted" />
+          <span class="min-w-0 truncate capitalize">{label()}</span>
           <Icon name="chevron-down" size="small" class="shrink-0 text-v2-icon-icon-muted" />
         </MenuV2.Trigger>
         <MenuV2.Portal>
@@ -52,14 +59,14 @@ export function PromptWorkspaceSelector(props: {
             <MenuV2.Group>
               <MenuV2.GroupLabel>{language.t("session.new.workspace.runIn")}</MenuV2.GroupLabel>
               <MenuV2.Item onSelect={() => select("main")}>
-                <IconV2 name="monitor" />
+                <Icon name="monitor" />
                 <span class="min-w-0 flex-1 truncate">{language.t("session.new.workspace.local")}</span>
                 <Show when={selected() === "main"}>
                   <Icon name="check" size="small" class="shrink-0" />
                 </Show>
               </MenuV2.Item>
               <MenuV2.Item onSelect={() => select("create")}>
-                <IconV2 name="workspace-new" />
+                <Icon name="workspace-new" />
                 <span class="min-w-0 flex-1 truncate">{language.t("workspace.new")}</span>
                 <Show when={selected() === "create"}>
                   <Icon name="check" size="small" class="shrink-0" />
@@ -67,18 +74,40 @@ export function PromptWorkspaceSelector(props: {
               </MenuV2.Item>
             </MenuV2.Group>
             <Show when={props.workspaces.length > 0}>
-              <MenuV2.Separator />
+              <MenuV2.Separator class="h-[0.5px]" />
               <MenuV2.Sub gutter={0} overlap overflowPadding={8}>
                 <MenuV2.SubTrigger>
-                  <IconV2 name="workspace" />
-                  {language.t("session.new.workspace.existing")}
+                  <Icon name="workspace" />
+                  {language.t("session.new.workspace.existing").replace(/…$/, "")}
                 </MenuV2.SubTrigger>
                 <MenuV2.Portal>
-                  <MenuV2.SubContent class="max-w-[200px]">
-                    <For each={props.workspaces}>
+                  <MenuV2.SubContent class="w-[216px]">
+                    <Show when={props.workspaces.length >= 10}>
+                      <div class="flex h-7 items-center gap-2 rounded-sm pl-3 pr-2 text-v2-icon-icon-muted">
+                        <Icon name="magnifying-glass" size="small" class="shrink-0" />
+                        <input
+                          value={search()}
+                          placeholder={language.t("common.search.placeholder")}
+                          aria-label={language.t("common.search.placeholder")}
+                          class="h-7 min-w-0 flex-1 border-0 bg-transparent text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-base outline-none placeholder:text-v2-text-text-faint"
+                          onInput={(event) => setSearch(event.currentTarget.value)}
+                          onKeyDown={(event) => {
+                            if (
+                              event.key === "Escape" ||
+                              event.key === "ArrowDown" ||
+                              event.key === "ArrowUp" ||
+                              event.key === "Enter"
+                            )
+                              return
+                            event.stopPropagation()
+                          }}
+                        />
+                      </div>
+                    </Show>
+                    <For each={workspaces()}>
                       {(workspace) => (
                         <MenuV2.Item onSelect={() => select(workspace)}>
-                          <IconV2 name="workspace-isolated" />
+                          <Icon name="workspace-isolated" />
                           <span class="min-w-0 flex-1 truncate">{getFilename(workspace)}</span>
                           <Show when={selected() === workspace}>
                             <Icon name="check" size="small" class="shrink-0" />
@@ -102,6 +131,7 @@ export function PromptGitStatus(props: { branch?: string; noGit?: boolean }) {
   const language = useLanguage()
   const label = () => {
     if (props.noGit) return language.t("session.new.git.none")
+    if (!props.branch) return undefined
     return props.branch
   }
 
@@ -116,8 +146,8 @@ export function PromptGitStatus(props: { branch?: string; noGit?: boolean }) {
             class="min-w-0 max-w-[220px]"
             contentClass="max-w-[calc(100vw-32px)] break-all"
           >
-            <div class="flex h-7 min-w-0 max-w-[220px] items-center gap-1.5 px-2 text-[13px] font-[440] leading-5 tracking-[-0.04px]">
-              <Icon name="branch" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+            <div class="flex h-6 min-w-0 max-w-[220px] items-center gap-1.5 px-1.5 text-[13px] font-[440] leading-5 tracking-[-0.04px]">
+              <Icon name={props.noGit ? "monitor" : "branch"} size="small" class="shrink-0 text-v2-icon-icon-muted" />
               <span class="min-w-0 truncate">{value()}</span>
             </div>
           </TooltipV2>

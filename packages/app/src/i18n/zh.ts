@@ -964,6 +964,12 @@ export const dict = {
   "session.delete.button": "删除会话",
 
   "workspace.new": "新建工作区",
+  "workspace.move.title": "移动到工作区",
+  "workspace.move.failed": "无法移动会话",
+  "workspace.lifecycle.creating": "正在创建工作区",
+  "workspace.lifecycle.created": "工作区已创建",
+  "workspace.lifecycle.moving": "正在移动到工作区",
+  "workspace.lifecycle.set": "工作区已设置",
   "workspace.type.local": "本地",
   "workspace.type.sandbox": "沙盒",
   "workspace.create.failed.title": "创建工作区失败",

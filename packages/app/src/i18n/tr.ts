@@ -991,6 +991,12 @@ export const dict = {
   "session.delete.button": "Oturumu sil",
 
   "workspace.new": "Yeni çalışma alanı",
+  "workspace.move.title": "Çalışma alanına taşı",
+  "workspace.move.failed": "Oturum taşınamadı",
+  "workspace.lifecycle.creating": "Çalışma alanı oluşturuluyor",
+  "workspace.lifecycle.created": "Çalışma alanı oluşturuldu",
+  "workspace.lifecycle.moving": "Çalışma alanına taşınıyor",
+  "workspace.lifecycle.set": "Çalışma alanı ayarlandı",
   "workspace.type.local": "yerel",
   "workspace.type.sandbox": "sandbox",
   "workspace.create.failed.title": "Çalışma alanı oluşturulamadı",

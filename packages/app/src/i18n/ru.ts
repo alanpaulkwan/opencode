@@ -987,6 +987,12 @@ export const dict = {
   "session.delete.button": "Удалить сессию",
 
   "workspace.new": "Новое рабочее пространство",
+  "workspace.move.title": "Переместить в рабочую область",
+  "workspace.move.failed": "Не удалось переместить сеанс",
+  "workspace.lifecycle.creating": "Создание рабочей области",
+  "workspace.lifecycle.created": "Рабочая область создана",
+  "workspace.lifecycle.moving": "Перемещение в рабочую область",
+  "workspace.lifecycle.set": "Рабочая область задана",
   "workspace.type.local": "локальное",
   "workspace.type.sandbox": "песочница",
   "workspace.create.failed.title": "Не удалось создать рабочее пространство",

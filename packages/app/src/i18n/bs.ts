@@ -984,6 +984,12 @@ export const dict = {
   "session.delete.button": "Izbriši sesiju",
 
   "workspace.new": "Novi radni prostor",
+  "workspace.move.title": "Premjesti u radni prostor",
+  "workspace.move.failed": "Premještanje sesije nije uspjelo",
+  "workspace.lifecycle.creating": "Kreiranje radnog prostora",
+  "workspace.lifecycle.created": "Radni prostor je kreiran",
+  "workspace.lifecycle.moving": "Premještanje u radni prostor",
+  "workspace.lifecycle.set": "Radni prostor je postavljen",
   "workspace.type.local": "lokalno",
   "workspace.type.sandbox": "sandbox",
   "workspace.create.failed.title": "Neuspješno kreiranje radnog prostora",
