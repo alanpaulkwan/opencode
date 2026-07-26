@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { Event, OpencodeClient, Session } from "@opencode-ai/sdk/v2/client"
 import type {
-  McpApi,
   McpListInput,
   McpResourceCatalogInput,
   SessionApi,
@@ -22,6 +21,9 @@ import {
 import { ServerScope } from "@/utils/server-scope"
 import { createServerSession } from "./server-session"
 import { adaptServerEvent } from "./server-sdk"
+import type { ServerApi } from "@/utils/server"
+
+type McpApi = ServerApi["mcp"]
 
 describe("MCP queries", () => {
   test("loads current servers for the requested location", async () => {

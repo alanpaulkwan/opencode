@@ -213,10 +213,16 @@ export function createHomeSessionsController(home: HomeController) {
         if (!conn || !ctx) return
         if (WorkspaceOperation.get(ctx.sdk.scope, session.id)?.status === "pending") return
         const [, setStore] = ctx.sync.child(session.directory)
+        if ((await ctx.sdk.protocol) !== "v1") return
         await archiveHomeSession({
           server: ServerConnection.key(conn),
           session,
-          archive: (sessionID) => ctx.sdk.api.session.archive({ sessionID, directory: session.directory }),
+          archive: (sessionID) =>
+            ctx.sdk.client.session.update({
+              sessionID,
+              directory: session.directory,
+              time: { archived: Date.now() },
+            }),
           remove: () =>
             setStore(
               produce((draft) => {
