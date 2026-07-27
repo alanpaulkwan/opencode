@@ -29,13 +29,14 @@ import { PromptGitStatus, PromptWorkspaceSelector } from "@/components/prompt-wo
 import { useTitlebarRightMount } from "@/components/titlebar"
 import { useCommand } from "@/context/command"
 import { useProviders } from "@/hooks/use-providers"
-import { useSettingsCommand } from "@/components/settings-dialog"
+import { useSettingsCommand, useSettingsDialog } from "@/components/settings-dialog"
 import { Persist, persisted } from "@/utils/persist"
 import createPresence from "solid-presence"
 import { useLocal } from "@/context/local"
 import { createPromptModelSelection } from "@/pages/session/composer/prompt-model-selection"
 import { useTabs, type DraftTab } from "@/context/tabs"
-import { isWorkspaceSelection } from "@/utils/workspace"
+import { isWorkspaceSelection, workspaceDefaultSelection } from "@/utils/workspace"
+import { pathKey } from "@/utils/path-key"
 
 const providerTipDismissalDuration = 30 * 24 * 60 * 60 * 1000
 
@@ -78,6 +79,7 @@ export default function NewSessionPage() {
   const projectControls = createPromptProjectControls()
 
   const rightMount = useTitlebarRightMount()
+  const openWorkspaces = useSettingsDialog("workspaces")
   const draft = createMemo(() =>
     tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === searchParams.draftId),
   )
@@ -87,6 +89,14 @@ export default function NewSessionPage() {
     tabs.updateDraft(id, { worktree })
   }
   const showWorkspaceBar = createMemo(() => sync().project?.vcs === "git")
+  const defaultWorktree = createMemo(() => {
+    const project = sync().project
+    if (!project) return "main"
+    return workspaceDefaultSelection(
+      settings.workspaces.defaultDestination(),
+      settings.workspaces.lastUsed(sdk().scope, project.id),
+    )
+  })
   const selectedWorktree = createMemo(() => {
     const project = sync().project
     const worktree = draft()?.worktree
@@ -99,7 +109,7 @@ export default function NewSessionPage() {
     if (worktree) return worktree
     const project = sync().project
     if (project && sdk().directory !== project.worktree) return sdk().directory
-    return "main"
+    return defaultWorktree()
   })
   const projectRoot = createMemo(() => sync().project?.worktree ?? sdk().directory)
   const localBranch = createMemo(() => serverSync().child(projectRoot())[0].vcs?.branch)
@@ -108,9 +118,16 @@ export default function NewSessionPage() {
     if (worktree === "main" || worktree === "create") return localBranch()
     return serverSync().child(worktree)[0].vcs?.branch
   })
+  const rememberWorkspaceSelection = (worktree: string) => {
+    const project = sync().project
+    if (!project) return
+    const local = worktree === "main" || pathKey(worktree) === pathKey(project.worktree)
+    settings.workspaces.setLastUsed(sdk().scope, project.id, local ? "local" : "workspace")
+  }
   const selectWorktree = (worktree: string) => {
     const project = sync().project
     setWorktree(worktree === "main" && project?.worktree !== sdk().directory ? project?.worktree : worktree)
+    rememberWorkspaceSelection(worktree)
   }
   const promptInputV2Controller = usePromptInputV2Controller({
     get controls() {
@@ -120,7 +137,10 @@ export default function NewSessionPage() {
       return newSessionWorktree()
     },
     onNewSessionWorktreeReset: () => setWorktree(undefined),
-    onSubmit: comments.clear,
+    onSubmit: () => {
+      rememberWorkspaceSelection(newSessionWorktree())
+      comments.clear()
+    },
   })
   const projectController = createPromptProjectController({
     controls: projectControls,
@@ -205,6 +225,7 @@ export default function NewSessionPage() {
                           branch={selectedBranch()}
                           onChange={selectWorktree}
                           onDone={promptInputV2Controller.restoreFocus}
+                          onViewAll={openWorkspaces}
                         />
                       </Show>
                     </div>

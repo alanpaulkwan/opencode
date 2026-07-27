@@ -83,16 +83,318 @@ test("selects local, new, and existing workspaces from the ready-ish start menu"
   await expect(page.getByRole("menuitem", { name: "Local repository" })).toBeVisible()
   await expect(page.getByRole("menuitem", { name: "New workspace" })).toBeVisible()
   await expect(page.getByRole("menuitem", { name: "Workspace", exact: true })).toBeVisible()
-  await expect(page.getByRole("menuitem", { name: "View all" })).toHaveCount(0)
+  await expect(page.getByRole("menuitem", { name: "View all" })).toBeVisible()
 
   await page.getByRole("menuitem", { name: "New workspace" }).click()
   await expect(page.getByRole("button", { name: /New workspace/ })).toBeVisible()
-  await expect(page.getByText("main", { exact: true })).toBeVisible()
+  await expect(page.getByText("from main", { exact: true })).toBeVisible()
 
   await page.getByRole("button", { name: /New workspace/ }).click()
   await page.getByRole("menuitem", { name: "Workspace", exact: true }).hover()
   await page.getByRole("menuitem", { name: "feature" }).click()
   await expect(page.getByRole("button", { name: /feature/ })).toBeVisible()
+})
+
+test("lists and manually deletes workspaces from settings", async ({ page }) => {
+  const draftID = "draft_workspace_settings"
+  const cleanWorkspace = `${workspace}-clean`
+  const inventory = { ...project, sandboxes: [workspace, cleanWorkspace] }
+  const session = {
+    id: "ses_workspace_settings",
+    slug: "workspace-settings",
+    projectID: project.id,
+    directory: workspace,
+    title: "Workspace settings session",
+    version: "dev",
+    time: { created: 1, updated: 2 },
+  }
+  let removal: { directory: string | null; body: unknown } | undefined
+  let statusRequests = 0
+  let sessionListRequests = 0
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname
+    if (path === "/vcs/status" || path === "/api/vcs/status") statusRequests++
+    if (path === "/session" || path === "/api/session") sessionListRequests++
+  })
+
+  await mockOpenCodeServer(page, {
+    directory: root,
+    project: inventory,
+    provider,
+    sessions: [session],
+    pageMessages: () => ({ items: [] }),
+  })
+  await page.route("**/experimental/worktree**", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({
+        status: 204,
+        headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "DELETE" },
+      })
+      return
+    }
+    if (route.request().method() !== "DELETE") return route.fallback()
+    const url = new URL(route.request().url())
+    removal = { directory: url.searchParams.get("directory"), body: route.request().postDataJSON() }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: "true",
+    })
+  })
+  await init(page, { type: "draft", draftID, directory: root })
+
+  await page.goto(`/new-session?draftId=${draftID}`)
+  await expectAppVisible(page.locator('[data-component="prompt-input"]'))
+  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("menuitem", { name: "View all" }).click()
+
+  const settings = page.locator(".settings-v2-dialog")
+  await expect(settings.getByRole("tab", { name: "Workspaces" })).toHaveAttribute("data-selected")
+  await expect(settings.getByText(workspace, { exact: true })).toBeVisible()
+  await expect(settings.getByText(cleanWorkspace, { exact: true })).toBeVisible()
+  await expect(settings.getByText("Workspace settings session", { exact: true })).toBeVisible()
+  await expect(settings.getByText("Automatically delete old workspaces")).toHaveCount(0)
+  const firstSessionInventory = sessionListRequests
+  await page.keyboard.press("Escape")
+  await expect(settings).toHaveCount(0)
+  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("menuitem", { name: "View all" }).click()
+  await expect(settings.getByText("Workspace settings session", { exact: true })).toBeVisible()
+  expect(sessionListRequests).toBeGreaterThan(firstSessionInventory)
+  await page.setViewportSize({ width: 375, height: 700 })
+  expect(await settings.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+  await page.setViewportSize({ width: 1280, height: 720 })
+
+  await settings.getByRole("button", { name: "More options" }).click()
+  await page.getByRole("menuitem", { name: "Delete all workspaces" }).click()
+  const bulkConfirmation = page.locator('[data-dialog-layer="1"]')
+  await expect(bulkConfirmation.getByText("Delete all 2 workspaces?")).toBeVisible()
+  await expect(bulkConfirmation).toContainText("All projects")
+  await bulkConfirmation.getByRole("button", { name: "Cancel" }).click()
+
+  await settings.getByRole("button", { name: 'Delete workspace "feature"?' }).click()
+  let confirmation = page.locator('[data-component="dialog-v2"]').filter({ hasText: 'Delete workspace "feature"?' })
+  await expect(confirmation).toContainText("linked sessions")
+  await expect(confirmation.getByRole("button", { name: "Delete workspace" })).toBeDisabled()
+  const firstInspection = statusRequests
+  await confirmation.getByRole("button", { name: "Cancel" }).click()
+
+  await settings.getByRole("button", { name: 'Delete workspace "feature"?' }).click()
+  confirmation = page.locator('[data-component="dialog-v2"]').filter({ hasText: 'Delete workspace "feature"?' })
+  await expect(confirmation).toContainText("linked sessions")
+  expect(statusRequests).toBeGreaterThan(firstInspection)
+  await confirmation.getByRole("button", { name: "Cancel" }).click()
+
+  await settings.getByRole("button", { name: 'Delete workspace "feature-clean"?' }).click()
+  confirmation = page.locator('[data-component="dialog-v2"]').filter({ hasText: 'Delete workspace "feature-clean"?' })
+  await expect(confirmation).toContainText("permanently removed")
+  const beforeRemoval = statusRequests
+  await confirmation.getByRole("button", { name: "Delete workspace" }).click()
+  await expect.poll(() => removal).toEqual({ directory: root, body: { directory: cleanWorkspace } })
+  expect(statusRequests).toBeGreaterThan(beforeRemoval)
+  await expect(settings.getByText(cleanWorkspace, { exact: true })).toHaveCount(0)
+  await expect(settings.getByText(workspace, { exact: true })).toBeVisible()
+})
+
+test("blocks deletion of the currently active workspace", async ({ page }) => {
+  const draftID = "draft_workspace_active"
+  let removed = false
+  await mockOpenCodeServer(page, {
+    directory: workspace,
+    project,
+    provider,
+    sessions: [],
+    pageMessages: () => ({ items: [] }),
+  })
+  await page.route("**/experimental/worktree**", async (route) => {
+    if (route.request().method() !== "DELETE") return route.fallback()
+    removed = true
+    await route.fulfill({ status: 200, contentType: "application/json", body: "true" })
+  })
+  await init(page, { type: "draft", draftID, directory: workspace })
+
+  await page.goto(`/new-session?draftId=${draftID}`)
+  await page.getByRole("button", { name: /feature/ }).click()
+  await page.getByRole("menuitem", { name: "View all" }).click()
+  const settings = page.locator(".settings-v2-dialog")
+  await settings.getByRole("button", { name: 'Delete workspace "feature"?' }).click()
+  const confirmation = page.locator('[data-component="dialog-v2"]').filter({ hasText: 'Delete workspace "feature"?' })
+  await expect(confirmation).toContainText("active workspace")
+  await expect(confirmation.getByRole("button", { name: "Delete workspace" })).toBeDisabled()
+  expect(removed).toBe(false)
+})
+
+test("wraps the workspace toolbar for long project filters on mobile", async ({ page }) => {
+  const draftID = "draft_workspace_mobile_filter"
+  const other = {
+    ...project,
+    id: "proj_workspaces_other",
+    name: "A second project with a deliberately long workspace filter label",
+    worktree: "C:/OpenCode/AnotherWorkspaceProject",
+    sandboxes: ["C:/OpenCode/worktree/another/feature-with-a-long-name"],
+  }
+  await mockOpenCodeServer(page, {
+    directory: root,
+    project,
+    provider,
+    sessions: [],
+    pageMessages: () => ({ items: [] }),
+  })
+  await page.route("**/project**", async (route) => {
+    if (new URL(route.request().url()).pathname !== "/project") return route.fallback()
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify([project, other]),
+    })
+  })
+  await init(page, { type: "draft", draftID, directory: root })
+  await page.setViewportSize({ width: 375, height: 700 })
+
+  await page.goto(`/new-session?draftId=${draftID}`)
+  const dismissTabs = page.getByRole("button", { name: "Dismiss Tabs information" })
+  if (await dismissTabs.isVisible()) await dismissTabs.click()
+  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("menuitem", { name: "View all" }).click()
+  const settings = page.locator(".settings-v2-dialog")
+  await expect(settings.getByRole("button", { name: "All projects" })).toBeVisible()
+  expect(await settings.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+})
+
+test("bulk deletion snapshots inventory and skips dirty or unknown workspaces", async ({ page }) => {
+  const draftID = "draft_workspace_delete_all"
+  const unknown = `${workspace}-unknown`
+  const clean = `${workspace}-clean`
+  const later = `${workspace}-later`
+  const inventory = { ...project, sandboxes: [workspace, unknown, clean] }
+  const removals: string[] = []
+  let release = () => {}
+  const deleteGate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const transport = await installSseTransport<{ directory: string; payload: Record<string, unknown> }>(page, { server })
+  await mockOpenCodeServer(page, {
+    directory: root,
+    project: inventory,
+    provider,
+    sessions: [],
+    pageMessages: () => ({ items: [] }),
+  })
+  await page.route("**/vcs/status**", async (route) => {
+    const directory = new URL(route.request().url()).searchParams.get("directory")
+    if (directory === workspace) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([{ path: "dirty.ts", status: "modified" }]),
+      })
+      return
+    }
+    if (directory === unknown) {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({ message: "status failed" }),
+      })
+      return
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: "[]",
+    })
+  })
+  await page.route("**/experimental/worktree**", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({
+        status: 204,
+        headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "DELETE" },
+      })
+      return
+    }
+    if (route.request().method() !== "DELETE") return route.fallback()
+    const body = route.request().postDataJSON() as { directory: string }
+    removals.push(body.directory)
+    await deleteGate
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: "true",
+    })
+  })
+  await init(page, { type: "draft", draftID, directory: root })
+
+  await page.goto(`/new-session?draftId=${draftID}`)
+  await transport.waitForConnection()
+  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("menuitem", { name: "View all" }).click()
+  const settings = page.locator(".settings-v2-dialog")
+  await settings.getByRole("button", { name: "More options" }).click()
+  await page.getByRole("menuitem", { name: "Delete all workspaces" }).click()
+  const confirmation = page.locator('[data-dialog-layer="1"]')
+  await expect(confirmation).toContainText("Delete all 3 workspaces?")
+  await transport.send({
+    directory: "global",
+    payload: {
+      id: "evt_workspace_added_after_confirmation",
+      type: "project.updated",
+      properties: { ...inventory, sandboxes: [...inventory.sandboxes, later] },
+    },
+  })
+  await confirmation.getByRole("button", { name: "Delete all workspaces" }).click()
+
+  await expect.poll(() => removals).toEqual([clean])
+  const deleteButtons = settings.getByRole("button", { name: /Delete workspace/ })
+  await expect.poll(() => deleteButtons.count()).toBeGreaterThan(0)
+  expect(await deleteButtons.evaluateAll((buttons) => buttons.every((button) => button.hasAttribute("disabled")))).toBe(
+    true,
+  )
+  release()
+  await expect(settings.getByText(workspace, { exact: true })).toBeVisible()
+  await expect(settings.getByText(unknown, { exact: true })).toBeVisible()
+  await expect(settings.getByText(clean, { exact: true })).toHaveCount(0)
+  await expect(settings.getByText(later, { exact: true })).toBeVisible()
+})
+
+test("applies the recovered new-workspace default without automatic cleanup", async ({ page }) => {
+  const draftID = "draft_workspace_default"
+  await mockOpenCodeServer(page, {
+    directory: root,
+    project,
+    provider,
+    sessions: [],
+    pageMessages: () => ({ items: [] }),
+  })
+  await page.addInitScript(
+    ({ draftID, root, server }) => {
+      localStorage.setItem(
+        "settings.v3",
+        JSON.stringify({
+          general: { newLayoutDesigns: true },
+          workspaces: { defaultDestination: "new", lastUsed: {} },
+        }),
+      )
+      localStorage.setItem(
+        "opencode.global.dat:server",
+        JSON.stringify({ projects: { local: [{ worktree: root, expanded: true }] }, lastProject: { local: root } }),
+      )
+      localStorage.setItem(
+        "opencode.window.browser.dat:tabs",
+        JSON.stringify([{ type: "draft", draftID, server, directory: root }]),
+      )
+    },
+    { draftID, root, server },
+  )
+
+  await page.goto(`/new-session?draftId=${draftID}`)
+  await expect(page.getByRole("button", { name: /New workspace/ })).toBeVisible()
+  await expect(page.getByText("from main", { exact: true })).toBeVisible()
 })
 
 test("submits the owning prompt after a new workspace becomes ready", async ({ page }) => {

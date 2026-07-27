@@ -22,6 +22,7 @@ import {
   terminalDefault,
   terminalFontFamily,
   terminalInput,
+  type WorkspaceDefaultDestination,
   useSettings,
 } from "@/context/settings"
 import { playSoundById, SOUND_OPTIONS } from "@/utils/sound"
@@ -189,6 +190,11 @@ export const SettingsGeneralV2: Component<{
     { value: "light", label: language.t("theme.scheme.light") },
     { value: "dark", label: language.t("theme.scheme.dark") },
   ])
+  const workspaceDestinationOptions = createMemo((): { value: WorkspaceDefaultDestination; label: string }[] => [
+    { value: "last-used", label: language.t("settings.workspaces.default.lastUsed") },
+    { value: "local", label: language.t("settings.workspaces.default.local") },
+    { value: "new", label: language.t("settings.workspaces.default.new") },
+  ])
 
   const languageOptions = createMemo(() =>
     language.locales.map((locale) => ({
@@ -272,6 +278,24 @@ export const SettingsGeneralV2: Component<{
             value={(o) => o.value}
             label={(o) => o.label}
             onSelect={(option) => option && language.setLocale(option.value)}
+          />
+        </SettingsRowV2>
+
+        <SettingsRowV2
+          title={language.t("settings.workspaces.default.title")}
+          description={language.t("settings.workspaces.default.description")}
+        >
+          <SelectV2
+            appearance="inline"
+            options={workspaceDestinationOptions()}
+            current={workspaceDestinationOptions().find(
+              (option) => option.value === settings.workspaces.defaultDestination(),
+            )}
+            value={(option) => option.value}
+            label={(option) => option.label}
+            placement="bottom-end"
+            gutter={6}
+            onSelect={(option) => option && settings.workspaces.setDefaultDestination(option.value)}
           />
         </SettingsRowV2>
 

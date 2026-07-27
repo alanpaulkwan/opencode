@@ -12,10 +12,11 @@ export function PromptWorkspaceSelector(props: {
   branch?: string
   onChange: (value: string) => void
   onDone: () => void
+  onViewAll: () => void
 }) {
   const language = useLanguage()
   const [search, setSearch] = createSignal("")
-  let pending: { type: "select"; value: string } | undefined
+  let pending: { type: "select"; value: string } | { type: "viewAll" } | undefined
   const selected = () => (props.value === props.projectRoot ? "main" : props.value)
   const workspaces = createMemo(() => {
     const query = search().trim().toLowerCase()
@@ -37,6 +38,10 @@ export function PromptWorkspaceSelector(props: {
     const action = pending
     pending = undefined
     if (action?.type === "select") props.onChange(action.value)
+    if (action?.type === "viewAll") {
+      props.onViewAll()
+      return
+    }
     props.onDone()
   }
   const label = () => {
@@ -119,19 +124,24 @@ export function PromptWorkspaceSelector(props: {
                 </MenuV2.Portal>
               </MenuV2.Sub>
             </Show>
+            <MenuV2.Separator class="h-[0.5px]" />
+            <MenuV2.Item onSelect={() => (pending = { type: "viewAll" })}>
+              <span class="min-w-0 flex-1 truncate">{language.t("common.viewAll")}</span>
+            </MenuV2.Item>
           </MenuV2.Content>
         </MenuV2.Portal>
       </MenuV2>
-      <PromptGitStatus branch={props.branch} />
+      <PromptGitStatus branch={props.branch} from={selected() === "create"} connected={selected() === "create"} />
     </>
   )
 }
 
-export function PromptGitStatus(props: { branch?: string; noGit?: boolean }) {
+export function PromptGitStatus(props: { branch?: string; noGit?: boolean; from?: boolean; connected?: boolean }) {
   const language = useLanguage()
   const label = () => {
     if (props.noGit) return language.t("session.new.git.none")
     if (!props.branch) return undefined
+    if (props.from) return language.t("session.new.workspace.fromBranch", { branch: props.branch })
     return props.branch
   }
 
@@ -139,15 +149,24 @@ export function PromptGitStatus(props: { branch?: string; noGit?: boolean }) {
     <Show when={label()}>
       {(value) => (
         <>
-          <span class="hidden select-none opacity-50 sm:inline mx-1">/</span>
+          <Show when={!props.connected}>
+            <span class="hidden select-none opacity-50 sm:inline mx-1">/</span>
+          </Show>
           <TooltipV2
             placement="top"
             value={value()}
             class="min-w-0 max-w-[220px]"
             contentClass="max-w-[calc(100vw-32px)] break-all"
           >
-            <div class="flex h-6 min-w-0 max-w-[220px] items-center gap-1.5 px-1.5 text-[13px] font-[440] leading-5 tracking-[-0.04px]">
-              <Icon name={props.noGit ? "monitor" : "branch"} size="small" class="shrink-0 text-v2-icon-icon-muted" />
+            <div
+              class="flex h-6 min-w-0 max-w-[220px] items-center gap-1.5 px-1.5 text-[13px] font-[440] leading-5 tracking-[-0.04px]"
+              classList={{ "ml-0.5": props.connected }}
+            >
+              <Icon
+                name={props.noGit ? "monitor" : props.from ? "fork" : "branch"}
+                size="small"
+                class="shrink-0 text-v2-icon-icon-muted"
+              />
               <span class="min-w-0 truncate">{value()}</span>
             </div>
           </TooltipV2>

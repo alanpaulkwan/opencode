@@ -57,6 +57,21 @@ export function captureSessionMove(event: ServerEvent, get: (sessionID: string) 
   if (!sessionID) return
   return { sessionID, from: get(sessionID)?.directory, refresh: "session.next.moved" as const }
 }
+
+export function shouldRefreshWorkspaceSessions(event: ServerEvent) {
+  const type: string = event.type
+  const current: string | undefined = event.current?.type
+  return (
+    type === "session.created" ||
+    type === "session.updated" ||
+    type === "session.deleted" ||
+    type === "session.next.moved" ||
+    current === "session.moved" ||
+    current === "session.renamed" ||
+    current === "session.archived" ||
+    current === "session.forked"
+  )
+}
 import { persisted } from "@/utils/persist"
 import type { ServerApi } from "@/utils/server"
 import type {
@@ -574,6 +589,12 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
     if (event.current) session.applyV2(event.current)
     session.apply(event)
     if (moved) reindexSession(moved.sessionID, moved.from)
+    if (shouldRefreshWorkspaceSessions(event)) {
+      void queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === serverSDK.scope && query.queryKey[2] === "settings-workspace-sessions",
+      })
+    }
     if (event.type === "session.created" || event.type === "session.updated" || event.type === "session.deleted") {
       homeSessions.apply(event)
     }
