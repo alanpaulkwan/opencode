@@ -1,5 +1,5 @@
 import { createStore, reconcile } from "solid-js/store"
-import { createEffect, createMemo, createSignal, onCleanup } from "solid-js"
+import { batch, createEffect, createMemo, createSignal, onCleanup } from "solid-js"
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { persisted } from "@/utils/persist"
 import { usePlatform } from "@/context/platform"
@@ -40,6 +40,7 @@ export interface Settings {
     mobileTitlebarPosition: "top" | "bottom"
     newLayoutDesigns?: boolean
     layoutTransitionEligible?: boolean
+    agentVisibilityInitialized?: boolean
     newInterfaceNoticeDismissed?: boolean
     shouldDisplayTabsToast?: boolean
   }
@@ -99,6 +100,11 @@ export function shouldDisplayTabsToast(
 
 export function hasExistingWebState(settings: Promise<string> | string | null, previousVersion: string | undefined) {
   return settings !== null || previousVersion !== undefined
+}
+
+export function initialAgentVisibility(initialized: boolean | undefined, existing: boolean, previousVersion?: string) {
+  if (initialized === true) return
+  return existing || previousVersion !== undefined
 }
 
 export function shouldEnableNewLayout(previous: string | undefined, current: string | undefined) {
@@ -283,6 +289,14 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       )
     })
     const visible = (preference: () => boolean) => createMemo(() => !newLayoutDesigns() || preference())
+    const initializeAgentVisibility = (existing: boolean) => {
+      const initial = initialAgentVisibility(store.general?.agentVisibilityInitialized, existing, launchState.previous)
+      if (initial === undefined) return
+      batch(() => {
+        setStore("general", "showCustomAgents", initial)
+        setStore("general", "agentVisibilityInitialized", true)
+      })
+    }
 
     if (sunset && !oldInterfaceRetired()) {
       const timeout = { current: undefined as ReturnType<typeof setTimeout> | undefined }
@@ -311,8 +325,9 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
 
     createEffect(() => {
       if (!ready() || !launchState.classified || platform.platform !== "web") return
-      if (layoutTransitionClassified()) return
-      setStore("general", "layoutTransitionEligible", hasExistingWebState(settingsInit, launchState.previous))
+      const existing = hasExistingWebState(settingsInit, launchState.previous)
+      if (!layoutTransitionClassified()) setStore("general", "layoutTransitionEligible", existing)
+      initializeAgentVisibility(existing)
     })
 
     createEffect(() => {
@@ -438,6 +453,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
           if (typeof current === "boolean") return
           setStore("general", "layoutTransitionEligible", eligible)
         },
+        initializeAgentVisibility,
         layoutTransitionAvailable: createMemo(() => ready() && layoutTransition().available),
         newInterfaceNoticeVisible: createMemo(() => ready() && layoutTransition().notice),
         dismissNewInterfaceNotice() {
