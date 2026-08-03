@@ -79,20 +79,64 @@ test("selects local, new, and existing workspaces from the ready-ish start menu"
 
   const trigger = page.getByRole("button", { name: /^local$/i })
   await expect(trigger).toBeVisible()
+  await trigger.hover()
+  await expect(page.getByRole("tooltip")).toContainText("Select where to run session")
   await trigger.click()
-  await expect(page.getByRole("menuitem", { name: "Local repository" })).toBeVisible()
-  await expect(page.getByRole("menuitem", { name: "New workspace" })).toBeVisible()
-  await expect(page.getByRole("menuitem", { name: "Workspace", exact: true })).toBeVisible()
+  await expect(page.getByRole("menuitem", { name: /Local repository/ })).toContainText("Use current checkout")
+  const newWorkspace = page.getByRole("menuitem", { name: /New workspace/ })
+  await expect(newWorkspace).toContainText("Work in parallel")
+  await expect(page.getByRole("menuitem", { name: /Workspace/ })).toContainText("Pick from existing")
   await expect(page.getByRole("menuitem", { name: "View all" })).toBeVisible()
 
-  await page.getByRole("menuitem", { name: "New workspace" }).click()
+  await newWorkspace.hover()
+  await expect(page.getByText("Creates an isolated copy from your current checkout", { exact: true })).toBeVisible({
+    timeout: 3_000,
+  })
+  await page.keyboard.press("Escape")
+  await expect(page.getByText("Creates an isolated copy from your current checkout", { exact: true })).toHaveCount(0)
+  await newWorkspace.click()
   await expect(page.getByRole("button", { name: /New workspace/ })).toBeVisible()
   await expect(page.getByText("from main", { exact: true })).toBeVisible()
 
   await page.getByRole("button", { name: /New workspace/ }).click()
-  await page.getByRole("menuitem", { name: "Workspace", exact: true }).hover()
+  await page.getByRole("menuitem", { name: /Workspace/ }).hover()
+  await expect(page.getByText("Reuse an existing isolated workspace", { exact: true })).toBeVisible()
   await page.getByRole("menuitem", { name: "feature" }).click()
   await expect(page.getByRole("button", { name: /feature/ })).toBeVisible()
+})
+
+test("searches long workspace lists within the available viewport", async ({ page }) => {
+  const draftID = "draft_workspace_search"
+  const workspaces = Array.from({ length: 10 }, (_, index) => `${workspace}-${index}`)
+  await mockOpenCodeServer(page, {
+    directory: root,
+    project: { ...project, sandboxes: workspaces },
+    provider,
+    sessions: [],
+    pageMessages: () => ({ items: [] }),
+  })
+  await init(page, { type: "draft", draftID, directory: root })
+  await page.setViewportSize({ width: 600, height: 360 })
+
+  await page.goto(`/new-session?draftId=${draftID}`)
+  await expectAppVisible(page.locator('[data-component="prompt-input"]'))
+  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("menuitem", { name: /Workspace/ }).focus()
+  await page.keyboard.press("ArrowRight")
+
+  const submenu = page
+    .locator('[data-component="menu-v2-content"]')
+    .filter({ hasText: "Reuse an existing isolated workspace" })
+  const search = submenu.getByPlaceholder("Search workspaces")
+  await expect(search).toBeFocused()
+  const box = await submenu.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.y).toBeGreaterThanOrEqual(0)
+  expect(box!.y + box!.height).toBeLessThanOrEqual(360)
+
+  await search.fill("feature-9")
+  await expect(submenu.getByRole("menuitem", { name: "feature-9" })).toBeVisible()
+  await expect(submenu.getByRole("menuitem", { name: "feature-0" })).toHaveCount(0)
 })
 
 test("lists and manually deletes workspaces from settings", async ({ page }) => {
@@ -677,10 +721,9 @@ test("moves a changed local session through workspace creation without changing 
   await page.goto(`/server/${base64Encode(server)}/session/${sessionID}`)
   await transport.waitForConnection()
   await page.locator("[data-session-title]").getByRole("button", { name: "Session details" }).click()
-  await page
-    .locator('[data-component="session-summary-panel"]')
-    .getByRole("button", { name: "Move to workspace" })
-    .click()
+  const panel = page.locator('[data-component="session-summary-panel"]')
+  await panel.getByRole("button", { name: "Local repository" }).click()
+  await expect(page.getByRole("menuitem", { name: "New workspace" })).toBeVisible()
   await page.getByRole("menuitem", { name: "New workspace" }).click()
 
   const lifecycle = page.locator('[data-timeline-row="WorkspaceLifecycle"]')

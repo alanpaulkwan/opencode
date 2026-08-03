@@ -40,6 +40,7 @@ describe("isWorkspaceSelection", () => {
     expect(isWorkspaceSelection(project, "create")).toBe(true)
     expect(isWorkspaceSelection(project, "/repo/")).toBe(true)
     expect(isWorkspaceSelection(project, "/workspaces/feature/")).toBe(true)
+    expect(isWorkspaceSelection({ worktree: "C:\\repo" }, "c:\\repo\\")).toBe(true)
   })
 
   test("rejects selections from a different project", () => {

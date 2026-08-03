@@ -239,8 +239,8 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
   const confirmDeleteAll = () => {
     if (store.transaction) return
     const context = captureDeleteContext()
-    const inventory = [...workspaces()]
-    const project = language.t("settings.workspaces.filter.all")
+    const inventory = [...filtered()]
+    const project = projectOptions().find((option) => option.id === selectedProject())?.label ?? selectedProject()
     setStore("transaction", "confirm")
     void dialog.push(
       () => (
@@ -264,9 +264,9 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
         <div class="settings-v2-workspaces-toolbar">
           <span class="settings-v2-workspaces-count">
             {language.t(
-              workspaces().length === 1 ? "settings.workspaces.count.one" : "settings.workspaces.count.other",
+              filtered().length === 1 ? "settings.workspaces.count.one" : "settings.workspaces.count.other",
               {
-                count: workspaces().length,
+                count: filtered().length,
               },
             )}
           </span>
@@ -283,7 +283,7 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
                 onSelect={(option) => option && setStore("project", option.id)}
               />
             </Show>
-            <Show when={workspaces().length > 0}>
+            <Show when={filtered().length > 0}>
               <MenuV2 placement="bottom-end" gutter={4}>
                 <MenuV2.Trigger
                   as={IconButtonV2}

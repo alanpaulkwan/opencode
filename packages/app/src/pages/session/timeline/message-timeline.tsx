@@ -342,11 +342,29 @@ function SessionSummaryPanel(props: {
           />
           <span class="min-w-0 flex-1 truncate">{displayName(props.project)}</span>
         </div>
-        <div class={row}>
-          <IconV2 name={props.local ? "monitor" : "workspace-isolated"} class="shrink-0 text-v2-icon-icon-muted" />
-          <span class="min-w-0 flex-1 truncate">{location()}</span>
-          <IconV2 name="chevron-down" size="small" class="shrink-0 text-v2-icon-icon-muted" />
-        </div>
+        <Show
+          when={props.local}
+          fallback={
+            <div class={row}>
+              <IconV2 name="workspace-isolated" class="shrink-0 text-v2-icon-icon-muted" />
+              <span class="min-w-0 flex-1 truncate">{location()}</span>
+            </div>
+          }
+        >
+          <SessionWorkspaceMenu
+            sessionID={props.sessionID}
+            project={props.project}
+            directory={props.directory}
+            messageID={props.messageID}
+            placement="left-start"
+            gutter={-2}
+            class={`${row} hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed`}
+          >
+            <IconV2 name="monitor" class="shrink-0 text-v2-icon-icon-muted" />
+            <span class="min-w-0 flex-1 truncate">{location()}</span>
+            <IconV2 name="chevron-down" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+          </SessionWorkspaceMenu>
+        </Show>
         <div class={row}>
           <IconV2 name="branch" class="shrink-0 text-v2-icon-icon-muted" />
           <Show
@@ -1842,7 +1860,7 @@ export function MessageTimeline(props: {
                         >
                           <KobaltePopover.Trigger
                             as={IconButtonV2}
-                            icon={<IconV2 name="review" />}
+                            icon={<IconV2 name="window-analytics" />}
                             variant="ghost-muted"
                             size="large"
                             state={summaryOpen() ? "pressed" : undefined}

@@ -19,7 +19,7 @@ import {
 } from "@/utils/workspace-request"
 
 export function SessionWorkspaceMenu(props: {
-  eligible: boolean
+  eligible?: boolean
   sessionID: string
   project: Project
   directory: string
@@ -36,7 +36,7 @@ export function SessionWorkspaceMenu(props: {
   const [store, setStore] = createStore({ selected: undefined as string | undefined })
   const operationPending = () => WorkspaceOperation.get(serverSDK().scope, props.sessionID)?.status === "pending"
   const blocked = () =>
-    !props.eligible || operationPending() || serverSync().session.data.session_working(props.sessionID)
+    props.eligible === false || operationPending() || serverSync().session.data.session_working(props.sessionID)
   const workspaces = () =>
     (props.project.sandboxes ?? []).filter((workspace) => pathKey(workspace) !== pathKey(props.directory))
 

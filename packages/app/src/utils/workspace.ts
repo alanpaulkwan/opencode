@@ -96,7 +96,7 @@ export function containsDirectory(parent: string, child: string) {
 export function isWorkspaceSelection(project: WorkspaceProject | undefined, selection: string) {
   if (selection === "main" || selection === "create") return true
   if (!project) return false
-  if (pathKey(project.worktree) === pathKey(selection)) return true
+  if (containsDirectory(project.worktree, selection) && containsDirectory(selection, project.worktree)) return true
   return isWorkspaceDirectory(project, selection)
 }
 

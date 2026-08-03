@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
   adaptServerEvent,
+  adaptWorktreeCompatibilityEvent,
   applyWorkspaceOperationEvent,
   applyWorktreeEvent,
   coalesceServerEvents,
@@ -14,6 +15,32 @@ import { Worktree } from "@/utils/worktree"
 import { WorkspaceOperation } from "@/utils/workspace-operation"
 
 describe("applyWorktreeEvent", () => {
+  test("adapts global readiness with the created worktree directory", () => {
+    const directory = "/repo/worktree-compatible"
+    const event = adaptWorktreeCompatibilityEvent({
+      directory,
+      payload: { id: "ready", type: "worktree.ready", properties: { name: "compatible" } } as Event,
+    })
+    if (!event) throw new Error("expected worktree event")
+
+    Worktree.pending(ServerScope.local, directory)
+    applyWorktreeEvent(ServerScope.local, event, "failed")
+    expect(Worktree.get(ServerScope.local, directory)).toEqual({ status: "ready" })
+  })
+
+  test("ignores unrelated global compatibility events", () => {
+    expect(
+      adaptWorktreeCompatibilityEvent({
+        directory: "/repo",
+        payload: {
+          id: "status",
+          type: "session.status",
+          properties: { sessionID: "session", status: { type: "idle" } },
+        } as Event,
+      }),
+    ).toBeUndefined()
+  })
+
   test("resolves readiness in the server scope that received the event", () => {
     const directory = "/repo/worktree-ready"
     Worktree.pending(ServerScope.local, directory)
