@@ -59,6 +59,7 @@ import type {
 } from "@opencode-ai/client/promise"
 import { toggleMcp } from "./global-sync/mcp"
 import { createServerSession, type ServerSession } from "./server-session"
+import { decodeSessionMessages } from "./session-message-decoder"
 
 type GlobalStore = {
   ready: boolean
@@ -226,6 +227,7 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
 
   const session = createServerSession(serverSDK.client, serverSDK.api.session, serverSDK.api.message, {
     protocol: serverSDK.protocol,
+    decodeMessages: decodeSessionMessages,
   })
   const queryOptionsApi = makeQueryOptionsApi(
     serverSDK.scope,

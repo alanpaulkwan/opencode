@@ -189,7 +189,11 @@ function reconcileFetched<T extends { id: string }>(
   return [...result.values()].sort((a, b) => cmp(a.id, b.id))
 }
 
-type ServerSessionOptions = { retry?: typeof retry; protocol?: Promise<"v1" | "v2"> }
+type ServerSessionOptions = {
+  retry?: typeof retry
+  protocol?: Promise<"v1" | "v2">
+  decodeMessages?: <T>(buffer: ArrayBuffer) => Promise<T>
+}
 
 export function createServerSession(
   client: OpencodeClient,
@@ -573,9 +577,17 @@ export function createServerSession(
         complete: response.data.length === 0,
       }
     }
-    const response = await (options?.retry ?? retry)(() => {
+    const response = await (options?.retry ?? retry)(async () => {
       onAttempt?.()
-      return client.session.messages({ sessionID, limit, before })
+      if (!options?.decodeMessages) return client.session.messages({ sessionID, limit, before })
+      const response = await client.session.messages({ sessionID, limit, before }, { parseAs: "arrayBuffer" })
+      if (!(response.data instanceof ArrayBuffer)) throw new Error("Session messages response is not an ArrayBuffer")
+      return {
+        ...response,
+        data: await options.decodeMessages<NonNullable<Awaited<ReturnType<typeof client.session.messages>>["data"]>>(
+          response.data,
+        ),
+      }
     })
     await yieldToMain()
     const items = (response.data ?? []).filter((item) => !!item?.info?.id)
