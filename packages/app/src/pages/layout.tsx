@@ -634,7 +634,7 @@ export default function LegacyLayout(props: ParentProps) {
     running: number
   }
 
-  const prefetchChunk = 200
+  const prefetchChunk = 50
   const prefetchConcurrency = 2
   const prefetchPendingLimit = 10
   const span = 4
