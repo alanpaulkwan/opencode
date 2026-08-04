@@ -777,18 +777,11 @@ export default function LegacyLayout(props: ParentProps) {
   }
 
   createEffect(() => {
+    if (params.id) return
     const sessions = currentSessions()
     if (sessions.length === 0) return
-
-    const index = params.id ? sessions.findIndex((s) => s.id === params.id) : 0
-    if (index === -1) return
-
-    if (!params.id) {
-      const first = sessions[index]
-      if (first) prefetchSession(first, "high")
-    }
-
-    warm(sessions, index)
+    const first = sessions[0]
+    if (first) prefetchSession(first, "high")
   })
 
   function navigateSessionByOffset(offset: number) {
