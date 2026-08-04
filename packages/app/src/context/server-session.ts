@@ -33,6 +33,12 @@ const historyMessagePageSize = 50
 const sessionInfoLimit = 2_048
 const emptyIDs: ReadonlySet<string> = new Set()
 
+function yieldToMain() {
+  const scheduler = (globalThis as { scheduler?: { yield: () => Promise<void> } }).scheduler
+  if (scheduler) return scheduler.yield()
+  return new Promise<void>((resolve) => setTimeout(resolve, 0))
+}
+
 function needsOlderTurnRoot(source: readonly SessionMessageInfo[]) {
   const boundary = source.find(
     (message) =>
@@ -552,6 +558,7 @@ export function createServerSession(
         if (!response.data.length) break
       }
       const response = pages.at(-1)!
+      await yieldToMain()
       const source = pages.flatMap((page) => page.data).toReversed()
       const normalized = normalizeSessionMessages(sessionID, source)
       return {
@@ -570,6 +577,7 @@ export function createServerSession(
       onAttempt?.()
       return client.session.messages({ sessionID, limit, before })
     })
+    await yieldToMain()
     const items = (response.data ?? []).filter((item) => !!item?.info?.id)
     return {
       session: items.map((item) => cleanMessage(item.info)).sort((a, b) => cmp(a.id, b.id)),
