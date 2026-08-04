@@ -1,6 +1,7 @@
 import SessionMessageDecoderWorkerUrl from "./session-message-decoder.worker.ts?worker&url"
 import type { DecodedLegacyMessagePage } from "./session-message-decode"
 import type { SessionInfo } from "@opencode-ai/client/promise"
+import type { Session } from "@opencode-ai/sdk/v2/client"
 
 type Response = { id: number; data?: unknown; error?: string }
 
@@ -16,11 +17,19 @@ export function decodeSessionList(buffer: ArrayBuffer) {
   return decode<SessionInfo[]>("sessions", buffer)
 }
 
-function decode<T>(type: "messages" | "sessions", buffer: ArrayBuffer) {
+export function decodeHomeSessionPage(buffer: ArrayBuffer, options: { directories: string[]; limit: number }) {
+  return decode<{ data: Session[]; cursor: { next?: string } }>("homeSessions", buffer, options)
+}
+
+function decode<T>(
+  type: "messages" | "sessions" | "homeSessions",
+  buffer: ArrayBuffer,
+  options?: { directories: string[]; limit: number },
+) {
   const id = ++nextID
   return new Promise<T>((resolve, reject) => {
     pending.set(id, { resolve: (value) => resolve(value as T), reject })
-    getWorker().postMessage({ id, type, buffer }, [buffer])
+    getWorker().postMessage({ id, type, buffer, options }, [buffer])
   })
 }
 

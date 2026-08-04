@@ -1,6 +1,9 @@
 import type { SessionInfo, SessionMessageInfo } from "@opencode-ai/client/promise"
-import type { Message, Part, Session } from "@opencode-ai/sdk/v2/client"
+import type { Message, Part, Session, V2SessionListResponse } from "@opencode-ai/sdk/v2/client"
 import { message as cleanMessage } from "@/utils/diffs"
+import { pathKey } from "@/utils/path-key"
+import { parseHomeSessionIndex } from "./global-sync/home-session-index"
+import { takeRecentSessions } from "./global-sync/session-trim"
 
 export type DecodedLegacyMessagePage = {
   session: Message[]
@@ -45,6 +48,20 @@ export function decodeLegacyMessagePage(buffer: ArrayBuffer): DecodedLegacyMessa
 export function decodeLegacySessionList(buffer: ArrayBuffer) {
   const text = new TextDecoder().decode(buffer)
   return (text ? (JSON.parse(text) as Session[]) : []).map(legacySessionInfo)
+}
+
+export function decodeHomeSessionPage(buffer: ArrayBuffer, options?: { directories: string[]; limit: number }) {
+  const text = new TextDecoder().decode(buffer)
+  const page = (text ? JSON.parse(text) : { data: [], cursor: {} }) as V2SessionListResponse
+  const sessions = parseHomeSessionIndex(page.data)
+  if (!options) return { data: sessions, cursor: page.cursor }
+  const directories = new Set(options.directories.map(pathKey))
+  return {
+    data: [...Map.groupBy(sessions, (session) => pathKey(session.directory))]
+      .filter(([directory]) => directories.has(directory))
+      .flatMap(([, items]) => takeRecentSessions(items, options.limit, Number.NEGATIVE_INFINITY)),
+    cursor: page.cursor,
+  }
 }
 
 export function legacySessionInfo(session: Session): SessionInfo {
