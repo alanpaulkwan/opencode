@@ -3,7 +3,6 @@ import type { FileDiffInfo } from "@opencode-ai/client/promise"
 type Response = { id: number; data?: FileDiffInfo[]; error?: string }
 
 let worker: Worker | undefined
-let workerLoad: Promise<Worker> | undefined
 let nextID = 0
 const pending = new Map<number, { resolve: (value: FileDiffInfo[]) => void; reject: (error: Error) => void }>()
 let lastInput = 0
@@ -19,43 +18,31 @@ export function decodeVcsDiff(buffer: ArrayBuffer) {
   const id = ++nextID
   return new Promise<FileDiffInfo[]>((resolve, reject) => {
     pending.set(id, { resolve, reject })
-    void getWorker()
-      .then((worker) => worker.postMessage({ id, buffer }, [buffer]))
-      .catch((error) => {
-        pending.delete(id)
-        reject(error instanceof Error ? error : new Error(String(error)))
-      })
+    getWorker().postMessage({ id, buffer }, [buffer])
   })
 }
 
 function getWorker() {
-  if (worker) return Promise.resolve(worker)
-  if (workerLoad) return workerLoad
-  workerLoad = (async () => {
-    const { default: workerUrl } = await import("./vcs-diff-decoder.worker.ts?worker&url")
-    const next = new Worker(workerUrl, { type: "module" })
-    next.onmessage = (event: MessageEvent<Response>) => {
-      const request = pending.get(event.data.id)
-      if (!request) return
-      pending.delete(event.data.id)
-      if (event.data.error) {
-        request.reject(new Error(event.data.error))
-        return
-      }
-      resolveWhenInputIdle(request.resolve, event.data.data ?? [])
+  if (worker) return worker
+  worker = new Worker(new URL("./vcs-diff-decoder.worker.ts", import.meta.url), { type: "module" })
+  worker.onmessage = (event: MessageEvent<Response>) => {
+    const request = pending.get(event.data.id)
+    if (!request) return
+    pending.delete(event.data.id)
+    if (event.data.error) {
+      request.reject(new Error(event.data.error))
+      return
     }
-    next.onerror = (event) => {
-      const error = new Error(event.message)
-      pending.forEach((request) => request.reject(error))
-      pending.clear()
-      next.terminate()
-      worker = undefined
-      workerLoad = undefined
-    }
-    worker = next
-    return next
-  })()
-  return workerLoad
+    resolveWhenInputIdle(request.resolve, event.data.data ?? [])
+  }
+  worker.onerror = (event) => {
+    const error = new Error(event.message)
+    pending.forEach((request) => request.reject(error))
+    pending.clear()
+    worker?.terminate()
+    worker = undefined
+  }
+  return worker
 }
 
 function resolveWhenInputIdle(resolve: (value: FileDiffInfo[]) => void, value: FileDiffInfo[], initial = true) {
