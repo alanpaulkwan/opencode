@@ -1,4 +1,3 @@
-import SessionMessageDecoderWorkerUrl from "./session-message-decoder.worker.ts?worker&url"
 import type { DecodedLegacyMessagePage } from "./session-message-decode"
 import type { SessionInfo } from "@opencode-ai/client/promise"
 import type { Session } from "@opencode-ai/sdk/v2/client"
@@ -6,6 +5,7 @@ import type { Session } from "@opencode-ai/sdk/v2/client"
 type Response = { id: number; data?: unknown; error?: string }
 
 let worker: Worker | undefined
+let workerLoad: Promise<Worker> | undefined
 let nextID = 0
 const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
 
@@ -29,29 +29,41 @@ function decode<T>(
   const id = ++nextID
   return new Promise<T>((resolve, reject) => {
     pending.set(id, { resolve: (value) => resolve(value as T), reject })
-    getWorker().postMessage({ id, type, buffer, options }, [buffer])
+    void getWorker()
+      .then((worker) => worker.postMessage({ id, type, buffer, options }, [buffer]))
+      .catch((error) => {
+        pending.delete(id)
+        reject(error instanceof Error ? error : new Error(String(error)))
+      })
   })
 }
 
 function getWorker() {
-  if (worker) return worker
-  worker = new Worker(SessionMessageDecoderWorkerUrl, { type: "module" })
-  worker.onmessage = (event: MessageEvent<Response>) => {
-    const request = pending.get(event.data.id)
-    if (!request) return
-    pending.delete(event.data.id)
-    if (event.data.error) {
-      request.reject(new Error(event.data.error))
-      return
+  if (worker) return Promise.resolve(worker)
+  if (workerLoad) return workerLoad
+  workerLoad = (async () => {
+    const { default: workerUrl } = await import("./session-message-decoder.worker.ts?worker&url")
+    const next = new Worker(workerUrl, { type: "module" })
+    next.onmessage = (event: MessageEvent<Response>) => {
+      const request = pending.get(event.data.id)
+      if (!request) return
+      pending.delete(event.data.id)
+      if (event.data.error) {
+        request.reject(new Error(event.data.error))
+        return
+      }
+      request.resolve(event.data.data)
     }
-    request.resolve(event.data.data)
-  }
-  worker.onerror = (event) => {
-    const error = new Error(event.message)
-    pending.forEach((request) => request.reject(error))
-    pending.clear()
-    worker?.terminate()
-    worker = undefined
-  }
-  return worker
+    next.onerror = (event) => {
+      const error = new Error(event.message)
+      pending.forEach((request) => request.reject(error))
+      pending.clear()
+      next.terminate()
+      worker = undefined
+      workerLoad = undefined
+    }
+    worker = next
+    return next
+  })()
+  return workerLoad
 }
