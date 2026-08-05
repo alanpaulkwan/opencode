@@ -269,7 +269,8 @@ function WorkspaceMoveAction(props: {
       classList={{
         "group/workspace-move relative shrink-0": true,
         "ml-auto h-5 w-[167px]": inline(),
-        "h-[46px] w-full rounded-b-[6px] bg-v2-background-bg-layer-02 hover:bg-v2-background-bg-layer-03": !inline(),
+        "-mt-2.5 h-[46px] w-full rounded-b-[6px] bg-v2-background-bg-layer-02 hover:bg-v2-background-bg-layer-03":
+          !inline(),
         invisible: props.dismissed,
       }}
     >
@@ -280,7 +281,8 @@ function WorkspaceMoveAction(props: {
         directory={props.directory}
         messageID={props.messageID}
         placement={inline() ? "bottom-end" : "left-start"}
-        gutter={inline() ? 4 : -2}
+        gutter={inline() ? 4 : -22}
+        contentClass={inline() ? undefined : "relative top-3.5"}
         class={
           inline()
             ? "flex h-5 w-full items-center gap-1.5 rounded-[4px] pr-6 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed"
@@ -332,9 +334,9 @@ function SessionSummaryPanel(props: {
   return (
     <div
       data-component="session-summary-panel"
-      class="w-[280px] overflow-hidden rounded-[6px] bg-v2-background-bg-layer-01 shadow-[var(--v2-elevation-floating)]"
+      class="w-[280px]"
     >
-      <div class="flex flex-col gap-1 px-0.5 py-1.5">
+      <div class="relative z-[70] flex flex-col gap-1 overflow-hidden rounded-[6px] bg-v2-background-bg-base px-0.5 py-1.5 shadow-[var(--v2-elevation-raised)]">
         <div class={row}>
           <ProjectAvatar
             fallback={displayName(props.project)}
@@ -358,7 +360,7 @@ function SessionSummaryPanel(props: {
             directory={props.directory}
             messageID={props.messageID}
             placement="left-start"
-            gutter={-2}
+            gutter={-22}
             class={`${row} hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed`}
           >
             <IconV2 name="monitor" class="shrink-0 text-v2-icon-icon-muted" />

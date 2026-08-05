@@ -28,6 +28,7 @@ export function SessionWorkspaceMenu(props: {
   placement?: ComponentProps<typeof MenuV2>["placement"]
   gutter?: number
   class?: string
+  contentClass?: string
   children: JSX.Element
   onOpenChange?: (open: boolean) => void
 }) {
@@ -118,19 +119,19 @@ export function SessionWorkspaceMenu(props: {
         {props.children}
       </MenuV2.Trigger>
       <MenuV2.Portal>
-        <MenuV2.Content class="w-[200px]">
+        <MenuV2.Content class={`w-[200px] ${props.contentClass ?? ""}`}>
           <MenuV2.Group>
-            <MenuV2.GroupLabel>{language.t("workspace.move.title")}</MenuV2.GroupLabel>
+            <MenuV2.GroupLabel>{language.t("workspace.move.menu.title")}</MenuV2.GroupLabel>
             <MenuV2.Item disabled={!!store.selected || blocked()} onSelect={() => void move("create")}>
               <Icon name="workspace-new" />
               {language.t("workspace.new")}
             </MenuV2.Item>
           </MenuV2.Group>
           <Show when={workspaces().length > 0}>
-            <MenuV2.Separator class="h-[0.5px]" />
+            <MenuV2.Separator class="h-[0.5px] bg-v2-border-border-base" />
             <MenuV2.Sub gutter={0} overlap overflowPadding={8}>
               <MenuV2.SubTrigger>
-                <Icon name="workspace" />
+                <Icon name="workspace-isolated" />
                 {language.t("session.new.workspace.existing").replace(/…$/, "")}
               </MenuV2.SubTrigger>
               <MenuV2.Portal>

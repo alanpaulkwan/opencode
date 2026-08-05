@@ -1141,6 +1141,7 @@ export const dict = {
   "settings.workspaces.default.local": "Local directory",
   "settings.workspaces.default.new": "New workspace",
   "workspace.move.title": "Move to workspace",
+  "workspace.move.menu.title": "Move session to",
   "workspace.move.failed": "Failed to move session",
   "workspace.lifecycle.creating": "Creating workspace",
   "workspace.lifecycle.created": "Workspace created",
