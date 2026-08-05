@@ -4,8 +4,14 @@ import type { Session } from "@opencode-ai/sdk/v2/client"
 
 type WorkspaceProject = { worktree: string; sandboxes?: readonly string[] }
 
+export function workspaceDirectories(project: WorkspaceProject) {
+  return (project.sandboxes ?? []).filter(
+    (directory) => !containsDirectory(project.worktree, directory) || !containsDirectory(directory, project.worktree),
+  )
+}
+
 export function workspaceInventory<T extends WorkspaceProject & { id: string }>(projects: readonly T[]) {
-  return projects.flatMap((project) => (project.sandboxes ?? []).map((directory) => ({ directory, project })))
+  return projects.flatMap((project) => workspaceDirectories(project).map((directory) => ({ directory, project })))
 }
 
 export function filterWorkspaceInventory<T extends { project: { id: string } }>(
@@ -66,16 +72,16 @@ export function inspectWorkspaceDeletion(input: {
   sessions: readonly Session[]
   status: "clean" | "dirty" | "unknown"
 }): WorkspaceDeleteInspection {
-  if (input.status === "unknown") return "unknown"
-  if (input.status === "dirty") return "dirty"
   if (input.activeDirectory && containsDirectory(input.workspace, input.activeDirectory)) return "active"
   if (input.sessions.some((session) => containsDirectory(input.workspace, session.directory))) return "linked"
+  if (input.status === "unknown") return "unknown"
+  if (input.status === "dirty") return "dirty"
   return "safe"
 }
 
 export function isWorkspaceDirectory(project: WorkspaceProject | undefined, directory: string) {
   if (!project || containsDirectory(project.worktree, directory)) return false
-  return project.sandboxes?.some((workspace) => containsDirectory(workspace, directory)) ?? false
+  return workspaceDirectories(project).some((workspace) => containsDirectory(workspace, directory))
 }
 
 export function isProjectDirectory(project: WorkspaceProject | undefined, directory: string) {

@@ -146,7 +146,7 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
   const remove = async (workspace: Workspace, bulk = false, context = captureDeleteContext()) => {
     if (!bulk) setStore("deleting", pathKey(workspace.directory))
     const preflight = await inspect(workspace, context)
-    if (preflight.result !== "safe") {
+    if (preflight.result !== "safe" && (bulk || preflight.result !== "dirty")) {
       blocked(preflight.result)
       if (!bulk) setStore("deleting", undefined)
       return
@@ -443,7 +443,9 @@ function DialogDeleteWorkspace(props: {
             <>
               {language.t("workspace.delete.confirm", { name: getFilename(props.workspace.directory) })}
               <br />
-              {props.workspace.directory}
+              <code class="max-w-full rounded-[4px] bg-[color-mix(in_oklch,var(--v2-text-text-base)_8%,transparent)] px-1 py-0.5 font-mono text-xs font-medium leading-4 text-v2-text-text-base break-all">
+                {props.workspace.directory}
+              </code>
               <br />
               {language.t("settings.workspaces.delete.warning")}
               <br />
@@ -459,7 +461,11 @@ function DialogDeleteWorkspace(props: {
         <ButtonV2
           type="button"
           variant="danger"
-          disabled={status.isPending || status.isError || status.data?.result !== "safe"}
+          disabled={
+            status.isPending ||
+            status.isError ||
+            (status.data?.result !== "safe" && status.data?.result !== "dirty")
+          }
           onClick={remove}
         >
           {language.t("workspace.delete.button")}

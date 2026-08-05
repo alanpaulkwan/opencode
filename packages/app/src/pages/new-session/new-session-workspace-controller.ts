@@ -5,7 +5,7 @@ import { useServerSync } from "@/context/server-sync"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { pathKey } from "@/utils/path-key"
-import { isWorkspaceSelection, workspaceDefaultSelection } from "@/utils/workspace"
+import { isWorkspaceSelection, workspaceDefaultSelection, workspaceDirectories } from "@/utils/workspace"
 
 export function resolveNewSessionWorktree(input: {
   enabled: boolean
@@ -96,7 +96,10 @@ export function createNewSessionWorkspaceController(input: {
     },
     project: {
       root: projectRoot,
-      workspaces: () => sync().project?.sandboxes ?? [],
+      workspaces: () => {
+        const project = sync().project
+        return project ? workspaceDirectories(project) : []
+      },
       git: () => sync().project?.vcs === "git",
       openAll: input.onViewAll,
     },

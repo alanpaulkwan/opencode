@@ -12,6 +12,7 @@ import { Worktree } from "@/utils/worktree"
 import { WorkspaceOperation } from "@/utils/workspace-operation"
 import { showToast } from "@/utils/toast"
 import type { ServerScope } from "@/utils/server-scope"
+import { workspaceDirectories } from "@/utils/workspace"
 import {
   WORKSPACE_PLACEMENT_REFRESH_TIMEOUT_MS,
   WORKSPACE_PREPARATION_TIMEOUT_MS,
@@ -38,7 +39,7 @@ export function SessionWorkspaceMenu(props: {
   const blocked = () =>
     props.eligible === false || operationPending() || serverSync().session.data.session_working(props.sessionID)
   const workspaces = () =>
-    (props.project.sandboxes ?? []).filter((workspace) => pathKey(workspace) !== pathKey(props.directory))
+    workspaceDirectories(props.project).filter((workspace) => pathKey(workspace) !== pathKey(props.directory))
 
   const fail = (scope: ServerScope, sessionID: string, message: string) => {
     setStore("selected", undefined)
@@ -117,7 +118,7 @@ export function SessionWorkspaceMenu(props: {
         {props.children}
       </MenuV2.Trigger>
       <MenuV2.Portal>
-        <MenuV2.Content class="w-[180px]">
+        <MenuV2.Content class="w-[200px]">
           <MenuV2.Group>
             <MenuV2.GroupLabel>{language.t("workspace.move.title")}</MenuV2.GroupLabel>
             <MenuV2.Item disabled={!!store.selected || blocked()} onSelect={() => void move("create")}>
@@ -133,7 +134,7 @@ export function SessionWorkspaceMenu(props: {
                 {language.t("session.new.workspace.existing").replace(/…$/, "")}
               </MenuV2.SubTrigger>
               <MenuV2.Portal>
-                <MenuV2.SubContent class="w-[216px]">
+                <MenuV2.SubContent class="w-[200px]">
                   <For each={workspaces()}>
                     {(workspace) => (
                       <MenuV2.Item disabled={!!store.selected || blocked()} onSelect={() => void move(workspace)}>

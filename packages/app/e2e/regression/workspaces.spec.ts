@@ -82,25 +82,18 @@ test("selects local, new, and existing workspaces from the ready-ish start menu"
   await trigger.hover()
   await expect(page.getByRole("tooltip")).toContainText("Select where to run session")
   await trigger.click()
-  await expect(page.getByRole("menuitem", { name: /Local repository/ })).toContainText("Use current checkout")
+  await expect(page.getByRole("menuitem", { name: /Local repository/ })).toBeVisible()
   const newWorkspace = page.getByRole("menuitem", { name: /New workspace/ })
-  await expect(newWorkspace).toContainText("Work in parallel")
-  await expect(page.getByRole("menuitem", { name: /Workspace/ })).toContainText("Pick from existing")
+  await expect(newWorkspace).toBeVisible()
+  await expect(page.getByRole("menuitem", { name: /Workspace/ })).toBeVisible()
   await expect(page.getByRole("menuitem", { name: "View all" })).toBeVisible()
 
-  await newWorkspace.hover()
-  await expect(page.getByText("Creates an isolated copy from your current checkout", { exact: true })).toBeVisible({
-    timeout: 3_000,
-  })
-  await page.keyboard.press("Escape")
-  await expect(page.getByText("Creates an isolated copy from your current checkout", { exact: true })).toHaveCount(0)
   await newWorkspace.click()
   await expect(page.getByRole("button", { name: /New workspace/ })).toBeVisible()
   await expect(page.getByText("from main", { exact: true })).toBeVisible()
 
   await page.getByRole("button", { name: /New workspace/ }).click()
   await page.getByRole("menuitem", { name: /Workspace/ }).hover()
-  await expect(page.getByText("Reuse an existing isolated workspace", { exact: true })).toBeVisible()
   await page.getByRole("menuitem", { name: "feature" }).click()
   await expect(page.getByRole("button", { name: /feature/ })).toBeVisible()
 })
@@ -126,7 +119,7 @@ test("searches long workspace lists within the available viewport", async ({ pag
 
   const submenu = page
     .locator('[data-component="menu-v2-content"]')
-    .filter({ hasText: "Reuse an existing isolated workspace" })
+    .filter({ has: page.getByPlaceholder("Search workspaces") })
   const search = submenu.getByPlaceholder("Search workspaces")
   await expect(search).toBeFocused()
   const box = await submenu.boundingBox()

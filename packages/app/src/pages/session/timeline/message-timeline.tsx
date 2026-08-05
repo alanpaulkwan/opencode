@@ -271,8 +271,8 @@ function WorkspaceMoveAction(props: {
     <div
       classList={{
         "group/workspace-move relative shrink-0": true,
-        "ml-auto h-6 w-[155px]": inline(),
-        "h-[46px] w-full bg-v2-background-bg-layer-02 rounded-b-[6px]": !inline(),
+        "ml-auto h-5 w-[167px]": inline(),
+        "h-[46px] w-full rounded-b-[6px] bg-v2-background-bg-layer-02 hover:bg-v2-background-bg-layer-03": !inline(),
         invisible: props.dismissed,
       }}
     >
@@ -286,16 +286,20 @@ function WorkspaceMoveAction(props: {
         gutter={inline() ? 4 : -2}
         class={
           inline()
-            ? "flex h-6 w-full items-center gap-1.5 rounded-[4px] px-1.5 pr-7 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed"
-            : "flex h-[46px] w-full items-center gap-1.5 rounded-b-[6px] px-3 pr-9 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-base hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed"
+            ? "flex h-5 w-full items-center gap-1.5 rounded-[4px] pr-6 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed"
+            : "flex h-[46px] w-full items-center gap-1.5 rounded-b-[6px] px-3 pr-9 pt-[10px] text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-muted focus-visible:outline-none data-[expanded]:bg-v2-background-bg-layer-03"
         }
       >
-        <IconV2 name="workspace" class="shrink-0 text-v2-icon-icon-muted" />
+        <IconV2 name={inline() ? "workspace-new" : "workspace"} class="shrink-0 text-v2-icon-icon-muted" />
         <span class="min-w-0 truncate">{language.t("workspace.move.title")}</span>
       </SessionWorkspaceMenu>
       <button
         type="button"
-        class="hover-reveal absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-[4px] text-v2-icon-icon-muted group-hover/workspace-move:opacity-100 group-focus-within/workspace-move:opacity-100 hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-icon-icon-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-icon-icon-base focus-visible:outline-none"
+        class={`absolute flex size-5 -translate-y-1/2 items-center justify-center rounded-[4px] text-v2-icon-icon-muted hover:bg-v2-overlay-simple-overlay-hover hover:text-v2-icon-icon-base focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:text-v2-icon-icon-base focus-visible:outline-none ${
+          inline()
+            ? "right-0 top-1/2"
+            : "hover-reveal right-3 top-[calc(50%+5px)] group-hover/workspace-move:opacity-100 group-focus-within/workspace-move:opacity-100"
+        }`}
         aria-label={language.t("common.dismiss")}
         onClick={(event) => {
           event.stopPropagation()
@@ -361,7 +365,7 @@ function SessionSummaryPanel(props: {
             class={`${row} hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed`}
           >
             <IconV2 name="monitor" class="shrink-0 text-v2-icon-icon-muted" />
-            <span class="min-w-0 flex-1 truncate">{location()}</span>
+            <span class="min-w-0 flex-1 truncate text-left">{location()}</span>
             <IconV2 name="chevron-down" size="small" class="shrink-0 text-v2-icon-icon-muted" />
           </SessionWorkspaceMenu>
         </Show>
@@ -513,6 +517,21 @@ export function MessageTimeline(props: {
     const id = sessionID()
     if (!id) return
     return WorkspaceOperation.get(serverSDK().scope, id)
+  })
+  const lifecycleTitle = createMemo(() => {
+    const operation = workspaceOperation()
+    if (operation?.status === "pending") {
+      return {
+        kind: "pending" as const,
+        workspace: true,
+        text: language.t(operation.type === "create" ? "workspace.lifecycle.creating" : "workspace.lifecycle.moving"),
+      }
+    }
+    if (operation?.type === "create" && titleValue()?.startsWith("New session"))
+      return { kind: "created" as const, workspace: true, text: language.t("workspace.lifecycle.created") }
+    if (titleValue()?.startsWith("New session"))
+      return { kind: "starting" as const, workspace: workspaceSession(), text: language.t("workspace.lifecycle.starting") }
+    return
   })
   const workspaceOperationPending = (sessionID: string) =>
     WorkspaceOperation.get(serverSDK().scope, sessionID)?.status === "pending"
@@ -1782,57 +1801,73 @@ export function MessageTimeline(props: {
                       /
                     </span>
                   </Show>
-                  <Show when={childTitle() || title.editing}>
-                    <Show
-                      when={title.editing}
-                      fallback={
-                        <h1
-                          data-slot="session-title-child"
-                          classList={{
-                            "truncate text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-base": true,
-                            "w-fit rounded-[6px] px-2 py-1 hover:bg-v2-overlay-simple-overlay-hover":
-                              settings.general.newLayoutDesigns(),
-                            "grow-1 min-w-0": !settings.general.newLayoutDesigns(),
+                  <Show
+                    when={!lifecycleTitle()}
+                    fallback={
+                      <span
+                        class="px-2 text-[13px] font-[530] leading-4 tracking-[-0.04px]"
+                        classList={{ "text-v2-text-text-base": lifecycleTitle()?.kind === "created" }}
+                        aria-live="polite"
+                      >
+                        <Show when={lifecycleTitle()?.kind !== "created"} fallback={lifecycleTitle()?.text}>
+                          <TextShimmer text={lifecycleTitle()!.text} />
+                        </Show>
+                      </span>
+                    }
+                  >
+                    <Show when={childTitle() || title.editing}>
+                      <Show
+                        when={title.editing}
+                        fallback={
+                          <h1
+                            data-slot="session-title-child"
+                            classList={{
+                              "truncate text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-base": true,
+                              "w-fit rounded-[6px] px-2 py-1 hover:bg-v2-overlay-simple-overlay-hover":
+                                settings.general.newLayoutDesigns(),
+                              "grow-1 min-w-0": !settings.general.newLayoutDesigns(),
+                            }}
+                            onClick={openTitleEditor}
+                          >
+                            {childTitle()}
+                          </h1>
+                        }
+                      >
+                        <InlineInput
+                          ref={(el) => {
+                            titleRef = el
                           }}
-                          onClick={openTitleEditor}
-                        >
-                          {childTitle()}
-                        </h1>
-                      }
-                    >
-                      <InlineInput
-                        ref={(el) => {
-                          titleRef = el
-                        }}
-                        data-slot="session-title-child"
-                        value={title.draft}
-                        disabled={titleMutation.isPending}
-                        classList={{
-                          "block text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-base": true,
-                          "w-full flex-1 grow-1 min-w-0 pl-1 -ml-1 rounded-[6px]": !settings.general.newLayoutDesigns(),
-                          "field-sizing-content self-start rounded-[6px] px-2 py-1 ":
-                            settings.general.newLayoutDesigns(),
-                        }}
-                        style={{
-                          "--inline-input-shadow": settings.general.newLayoutDesigns()
-                            ? "none"
-                            : "var(--shadow-xs-border-select)",
-                        }}
-                        onInput={(event) => setTitle("draft", event.currentTarget.value)}
-                        onKeyDown={(event) => {
-                          event.stopPropagation()
-                          if (event.key === "Enter") {
-                            event.preventDefault()
-                            void saveTitleEditor()
-                            return
-                          }
-                          if (event.key === "Escape") {
-                            event.preventDefault()
-                            closeTitleEditor()
-                          }
-                        }}
-                        onBlur={closeTitleEditor}
-                      />
+                          data-slot="session-title-child"
+                          value={title.draft}
+                          disabled={titleMutation.isPending}
+                          classList={{
+                            "block text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-base": true,
+                            "w-full flex-1 grow-1 min-w-0 pl-1 -ml-1 rounded-[6px]":
+                              !settings.general.newLayoutDesigns(),
+                            "field-sizing-content self-start rounded-[6px] px-2 py-1 ":
+                              settings.general.newLayoutDesigns(),
+                          }}
+                          style={{
+                            "--inline-input-shadow": settings.general.newLayoutDesigns()
+                              ? "none"
+                              : "var(--shadow-xs-border-select)",
+                          }}
+                          onInput={(event) => setTitle("draft", event.currentTarget.value)}
+                          onKeyDown={(event) => {
+                            event.stopPropagation()
+                            if (event.key === "Enter") {
+                              event.preventDefault()
+                              void saveTitleEditor()
+                              return
+                            }
+                            if (event.key === "Escape") {
+                              event.preventDefault()
+                              closeTitleEditor()
+                            }
+                          }}
+                          onBlur={closeTitleEditor}
+                        />
+                      </Show>
                     </Show>
                   </Show>
                 </div>

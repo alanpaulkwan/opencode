@@ -11,6 +11,7 @@ import {
   runWorkspaceDeleteTransaction,
   sessionsForWorkspace,
   workspaceDefaultSelection,
+  workspaceDirectories,
   workspaceInventory,
 } from "./workspace"
 
@@ -73,7 +74,7 @@ describe("isProjectDirectory", () => {
 
 test("groups and filters workspace inventory by project", () => {
   const inventory = workspaceInventory([
-    { id: "a", worktree: "/a", sandboxes: ["/a/one", "/a/two"] },
+    { id: "a", worktree: "/a", sandboxes: ["/a", "/a/one", "/a/two"] },
     { id: "b", worktree: "/b", sandboxes: ["/b/one"] },
   ])
 
@@ -84,6 +85,12 @@ test("groups and filters workspace inventory by project", () => {
   ])
   expect(filterWorkspaceInventory(inventory, "a").map((item) => item.directory)).toEqual(["/a/one", "/a/two"])
   expect(filterWorkspaceInventory(inventory, "all")).toEqual(inventory)
+})
+
+test("excludes the project checkout from workspace directories", () => {
+  expect(workspaceDirectories({ worktree: "C:\\repo", sandboxes: ["c:\\repo\\", "C:\\workspaces\\one"] })).toEqual([
+    "C:\\workspaces\\one",
+  ])
 })
 
 test("deletes all workspaces sequentially", async () => {
@@ -129,6 +136,21 @@ test("blocks unsafe workspace deletion", () => {
       workspace: "/workspace",
       sessions: [session("/workspace/packages/app")],
       status: "clean",
+    }),
+  ).toBe("linked")
+  expect(
+    inspectWorkspaceDeletion({
+      workspace: "/workspace",
+      activeDirectory: "/workspace/app",
+      sessions: [],
+      status: "dirty",
+    }),
+  ).toBe("active")
+  expect(
+    inspectWorkspaceDeletion({
+      workspace: "/workspace",
+      sessions: [session("/workspace/packages/app")],
+      status: "dirty",
     }),
   ).toBe("linked")
   expect(inspectWorkspaceDeletion({ workspace: "/workspace", sessions: [], status: "dirty" })).toBe("dirty")

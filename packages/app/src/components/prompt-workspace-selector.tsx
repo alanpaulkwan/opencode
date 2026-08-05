@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, onCleanup, Show } from "solid-js"
+import { createMemo, createSignal, For, Show } from "solid-js"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { Icon } from "@opencode-ai/ui/v2/icon"
@@ -10,14 +10,13 @@ export function PromptWorkspaceSelector(props: {
   projectRoot: string
   workspaces: string[]
   branch?: string
+  onboarding?: boolean
   onChange: (value: string) => void
   onDone: () => void
   onViewAll: () => void
 }) {
   const language = useLanguage()
   const [search, setSearch] = createSignal("")
-  const [explanation, setExplanation] = createSignal<"local" | "new">()
-  let explanationTimer: ReturnType<typeof setTimeout> | undefined
   let searchInput: HTMLInputElement | undefined
   let focusSearch = false
   let pending: { type: "select"; value: string } | { type: "viewAll" } | undefined
@@ -35,21 +34,7 @@ export function PromptWorkspaceSelector(props: {
   const select = (value: string) => {
     pending = { type: "select", value }
   }
-  const hideExplanation = () => {
-    if (explanationTimer) clearTimeout(explanationTimer)
-    explanationTimer = undefined
-    setExplanation()
-  }
-  const showExplanation = (value: "local" | "new") => {
-    hideExplanation()
-    explanationTimer = setTimeout(() => {
-      explanationTimer = undefined
-      setExplanation(value)
-    }, 800)
-  }
-  onCleanup(hideExplanation)
   const onOpenChange = (open: boolean) => {
-    hideExplanation()
     if (open) {
       setSearch("")
       return
@@ -85,65 +70,52 @@ export function PromptWorkspaceSelector(props: {
           >
             <Icon name={icon()} class="shrink-0 text-v2-icon-icon-muted" />
             <span class="min-w-0 truncate">{label()}</span>
+            <Show when={props.onboarding}>
+              <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-text-text-accent" />
+            </Show>
             <Icon name="chevron-down" size="small" class="shrink-0 text-v2-icon-icon-muted" />
           </MenuV2.Trigger>
           <MenuV2.Portal>
-            <MenuV2.Content class="w-[220px]">
+            <MenuV2.Content class="w-[200px]">
               <MenuV2.Group>
                 <MenuV2.GroupLabel>{language.t("session.new.workspace.runIn")}</MenuV2.GroupLabel>
-                <MenuV2.Item
-                  class="!h-11"
-                  aria-description={language.t("session.new.workspace.local.tooltip")}
-                  onPointerEnter={() => showExplanation("local")}
-                  onPointerLeave={hideExplanation}
-                  onFocusIn={() => showExplanation("local")}
-                  onFocusOut={hideExplanation}
-                  onKeyDown={(event: KeyboardEvent) => {
-                    if (event.key === "Escape") hideExplanation()
-                  }}
-                  onSelect={() => select("main")}
-                >
+                <MenuV2.Item onSelect={() => select("main")}>
                   <Icon name="monitor" />
                   <TooltipV2
                     placement="right"
-                    forceOpen={explanation() === "local"}
-                    value={language.t("session.new.workspace.local.tooltip")}
+                    openDelay={800}
+                    value={
+                      <span class="flex flex-col gap-0.5">
+                        <span>{language.t("session.new.workspace.local")}</span>
+                        <span class="font-[440] text-v2-text-text-muted">
+                          {language.t("session.new.workspace.local.tooltip")}
+                        </span>
+                      </span>
+                    }
                     class="min-w-0 flex-1"
-                    contentClass="max-w-[min(240px,calc(100vw-16px))] whitespace-normal break-words"
                   >
-                    <WorkspaceMenuCopy
-                      label={language.t("session.new.workspace.local")}
-                      description={language.t("session.new.workspace.local.description")}
-                    />
+                    <span class="min-w-0 truncate">{language.t("session.new.workspace.local")}</span>
                   </TooltipV2>
                   <Show when={selected() === "main"}>
                     <Icon name="check" size="small" class="shrink-0" />
                   </Show>
                 </MenuV2.Item>
-                <MenuV2.Item
-                  class="!h-11"
-                  aria-description={language.t("session.new.workspace.new.tooltip")}
-                  onPointerEnter={() => showExplanation("new")}
-                  onPointerLeave={hideExplanation}
-                  onFocusIn={() => showExplanation("new")}
-                  onFocusOut={hideExplanation}
-                  onKeyDown={(event: KeyboardEvent) => {
-                    if (event.key === "Escape") hideExplanation()
-                  }}
-                  onSelect={() => select("create")}
-                >
+                <MenuV2.Item onSelect={() => select("create")}>
                   <Icon name="workspace-new" />
                   <TooltipV2
                     placement="right"
-                    forceOpen={explanation() === "new"}
-                    value={language.t("session.new.workspace.new.tooltip")}
+                    openDelay={800}
+                    value={
+                      <span class="flex flex-col gap-0.5">
+                        <span>{language.t("workspace.new")}</span>
+                        <span class="font-[440] text-v2-text-text-muted">
+                          {language.t("session.new.workspace.new.tooltip")}
+                        </span>
+                      </span>
+                    }
                     class="min-w-0 flex-1"
-                    contentClass="max-w-[min(240px,calc(100vw-16px))] whitespace-normal break-words"
                   >
-                    <WorkspaceMenuCopy
-                      label={language.t("workspace.new")}
-                      description={language.t("session.new.workspace.new.description")}
-                    />
+                    <span class="min-w-0 truncate">{language.t("workspace.new")}</span>
                   </TooltipV2>
                   <Show when={selected() === "create"}>
                     <Icon name="check" size="small" class="shrink-0" />
@@ -167,7 +139,6 @@ export function PromptWorkspaceSelector(props: {
                   }}
                 >
                   <MenuV2.SubTrigger
-                    class="!h-11"
                     onKeyDown={(event) => {
                       if (
                         event.key === "ArrowRight" ||
@@ -179,16 +150,12 @@ export function PromptWorkspaceSelector(props: {
                     }}
                   >
                     <Icon name="workspace-isolated" />
-                    <WorkspaceMenuCopy
-                      label={language.t("session.new.workspace.existing").replace(/…$/, "")}
-                      description={language.t("session.new.workspace.existing.description")}
-                    />
+                    <span class="min-w-0 flex-1 truncate">
+                      {language.t("session.new.workspace.existing").replace(/…$/, "")}
+                    </span>
                   </MenuV2.SubTrigger>
                   <MenuV2.Portal>
-                    <MenuV2.SubContent class="max-h-[calc(100dvh-16px)] w-[220px] overflow-y-auto">
-                      <div class="flex min-h-11 items-center px-3 py-2 text-[13px] font-[440] leading-4 tracking-[-0.04px] text-v2-text-text-faint">
-                        {language.t("session.new.workspace.existing.tooltip")}
-                      </div>
+                    <MenuV2.SubContent class="max-h-[calc(100dvh-16px)] w-[200px] overflow-y-auto">
                       <Show when={props.workspaces.length >= 10}>
                         <div class="flex h-7 items-center gap-2 rounded-sm pl-3 pr-2 text-v2-icon-icon-muted">
                           <Icon name="magnifying-glass" size="small" class="shrink-0" />
@@ -279,14 +246,5 @@ export function PromptGitStatus(props: { branch?: string; noGit?: boolean; from?
         </>
       )}
     </Show>
-  )
-}
-
-function WorkspaceMenuCopy(props: { label: string; description: string }) {
-  return (
-    <span class="flex min-w-0 flex-1 flex-col gap-1">
-      <span class="truncate">{props.label}</span>
-      <span class="truncate text-v2-text-text-muted">{props.description}</span>
-    </span>
   )
 }
