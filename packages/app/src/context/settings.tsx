@@ -367,6 +367,11 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
       setStore("general", "followup", "steer")
     })
 
+    createEffect(() => {
+      if (!ready() || !newLayoutDesigns() || store.general?.showFileTree !== true) return
+      setStore("general", "showFileTree", false)
+    })
+
     return {
       ready,
       get current() {
@@ -465,7 +470,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         },
       },
       visibility: {
-        fileTree: visible(showFileTree),
+        fileTree: createMemo(() => !newLayoutDesigns()),
         search: visible(showSearch),
         status: visible(showStatus),
         customAgents: visible(showCustomAgents),
