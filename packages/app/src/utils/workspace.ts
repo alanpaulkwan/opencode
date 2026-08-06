@@ -42,35 +42,13 @@ export function removeWorkspacesSequentially<T>(workspaces: readonly T[], remove
   return workspaces.reduce((previous, workspace) => previous.then(() => remove(workspace)), Promise.resolve())
 }
 
-export type WorkspaceDeleteTransaction = "confirm" | number | undefined
-
-export async function runWorkspaceDeleteTransaction(input: {
-  token: number
-  set: (update: (current: WorkspaceDeleteTransaction) => WorkspaceDeleteTransaction) => void
-  task: () => Promise<void>
-}) {
-  let acquired = false
-  input.set((current) => {
-    if (current !== "confirm") return current
-    acquired = true
-    return input.token
-  })
-  if (!acquired) return false
-  try {
-    await input.task()
-    return true
-  } finally {
-    input.set((current) => (current === input.token ? undefined : current))
-  }
-}
-
-export type WorkspaceDeleteInspection = "safe" | "active" | "linked" | "dirty" | "unknown"
+export type WorkspaceDeleteInspection = "safe" | "active" | "linked" | "dirty"
 
 export function inspectWorkspaceDeletion(input: {
   workspace: string
   activeDirectory?: string
   sessions: readonly Session[]
-  status: "clean" | "dirty" | "unknown"
+  status: "clean" | "dirty"
 }): WorkspaceDeleteInspection {
   if (input.activeDirectory && containsDirectory(input.workspace, input.activeDirectory)) return "active"
   if (
@@ -79,7 +57,6 @@ export function inspectWorkspaceDeletion(input: {
     )
   )
     return "linked"
-  if (input.status === "unknown") return "unknown"
   if (input.status === "dirty") return "dirty"
   return "safe"
 }

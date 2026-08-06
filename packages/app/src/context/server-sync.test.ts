@@ -17,7 +17,6 @@ import {
   loadMcpQuery,
   loadMcpResourcesQuery,
   seedActiveSessionStatuses,
-  shouldRefreshWorkspaceSessions,
 } from "./server-sync"
 import { ServerScope } from "@/utils/server-scope"
 import { createServerSession } from "./server-session"
@@ -155,41 +154,6 @@ describe("session move normalization", () => {
     expect(session.get("session")).toMatchObject({ directory: "/destination", path: "packages/app" })
   })
 
-  test("refreshes workspace inventory for current and V1 lifecycle events", () => {
-    const current = adaptServerEvent({
-      id: "event-current-move-refresh",
-      created: 10,
-      type: "session.moved",
-      data: { sessionID: "session", location: { directory: "/destination" } },
-    } as OpenCodeEvent)
-    const legacy = {
-      type: "session.next.moved",
-      properties: { timestamp: 10, sessionID: "session", location: { directory: "/destination" } },
-    } as Event
-
-    expect(shouldRefreshWorkspaceSessions(current)).toBe(true)
-    expect(
-      shouldRefreshWorkspaceSessions(
-        adaptServerEvent({
-          id: "event-current-rename-refresh",
-          created: 10,
-          type: "session.renamed",
-          data: { sessionID: "session", title: "Renamed" },
-        } as OpenCodeEvent),
-      ),
-    ).toBe(true)
-    expect(shouldRefreshWorkspaceSessions(legacy)).toBe(true)
-    expect(
-      shouldRefreshWorkspaceSessions({ type: "session.created", properties: { info: sessionAt("/source") } } as Event),
-    ).toBe(true)
-    expect(
-      shouldRefreshWorkspaceSessions({ type: "session.updated", properties: { info: sessionAt("/source") } } as Event),
-    ).toBe(true)
-    expect(
-      shouldRefreshWorkspaceSessions({ type: "session.deleted", properties: { info: sessionAt("/source") } } as Event),
-    ).toBe(true)
-    expect(shouldRefreshWorkspaceSessions({ type: "server.connected", properties: {} } as Event)).toBe(false)
-  })
 })
 
 describe("pickDirectoriesToEvict", () => {

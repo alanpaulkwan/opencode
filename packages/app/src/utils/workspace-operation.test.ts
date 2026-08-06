@@ -11,29 +11,13 @@ test("workspace moves require settled followup state", () => {
 })
 
 describe("WorkspaceOperation", () => {
-  test("reacts to operation completion", () => {
+  test("settles only the matching pending operation", () => {
     WorkspaceOperation.start(ServerScope.local, "session", "move", "/workspace")
     expect(WorkspaceOperation.get(ServerScope.local, "session")?.status).toBe("pending")
-    WorkspaceOperation.complete(ServerScope.local, "session")
+    WorkspaceOperation.complete(ServerScope.local, "session", "/other")
+    expect(WorkspaceOperation.get(ServerScope.local, "session")?.status).toBe("pending")
+    WorkspaceOperation.complete(ServerScope.local, "session", "/workspace")
+    WorkspaceOperation.fail(ServerScope.local, "session")
     expect(WorkspaceOperation.get(ServerScope.local, "session")?.status).toBe("complete")
-  })
-
-  test("ignores completion for a different destination", () => {
-    WorkspaceOperation.start(ServerScope.local, "destination", "move", "/workspace/expected")
-    WorkspaceOperation.complete(ServerScope.local, "destination", "/workspace/other")
-    expect(WorkspaceOperation.get(ServerScope.local, "destination")?.status).toBe("pending")
-  })
-
-  test("does not downgrade a completed move after cleanup fails", () => {
-    WorkspaceOperation.start(ServerScope.local, "cleanup", "move", "/workspace")
-    WorkspaceOperation.complete(ServerScope.local, "cleanup")
-    WorkspaceOperation.fail(ServerScope.local, "cleanup", "source cleanup failed")
-    expect(WorkspaceOperation.get(ServerScope.local, "cleanup")?.status).toBe("complete")
-  })
-
-  test("settles a pending create from its worktree directory", () => {
-    WorkspaceOperation.start(ServerScope.local, "create", "create", "/workspace/create")
-    WorkspaceOperation.completeCreate(ServerScope.local, "/workspace/create")
-    expect(WorkspaceOperation.get(ServerScope.local, "create")?.status).toBe("complete")
   })
 })

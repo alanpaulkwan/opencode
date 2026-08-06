@@ -333,10 +333,7 @@ function SessionSummaryPanel(props: {
     "flex h-7 w-full items-center gap-2 rounded-[4px] px-3 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-base"
 
   return (
-    <div
-      data-component="session-summary-panel"
-      class="w-[280px]"
-    >
+    <div data-component="session-summary-panel" class="w-[280px]">
       <div class="relative z-10 flex flex-col gap-1 overflow-hidden rounded-[6px] bg-v2-background-bg-base px-0.5 py-1.5 shadow-[var(--v2-elevation-raised)]">
         <div class={row}>
           <ProjectAvatar
@@ -389,12 +386,7 @@ function SessionSummaryPanel(props: {
         >
           <IconV2 name="review" class="shrink-0 text-v2-icon-icon-muted" />
           <Show when={props.diffs.length > 0} fallback={<span>{language.t("session.review.noChanges")}</span>}>
-            <span>
-              {language.t(
-                props.diffs.length === 1 ? "ui.sessionTurn.diffs.changed.one" : "ui.sessionTurn.diffs.changed.other",
-                { count: String(props.diffs.length) },
-              )}
-            </span>
+            <span>{language.plural("ui.sessionTurn.diffs.changed", props.diffs.length)}</span>
             <span class="text-v2-text-text-muted">·</span>
             <DiffChangesV2 changes={props.diffs} />
           </Show>
@@ -519,14 +511,13 @@ export function MessageTimeline(props: {
     if (operation?.status === "pending") {
       return {
         kind: "pending" as const,
-        workspace: true,
         text: language.t(operation.type === "create" ? "workspace.lifecycle.creating" : "workspace.lifecycle.moving"),
       }
     }
     if (operation?.type === "create" && titleValue()?.startsWith("New session"))
-      return { kind: "created" as const, workspace: true, text: language.t("workspace.lifecycle.created") }
+      return { kind: "created" as const, text: language.t("workspace.lifecycle.created") }
     if (titleValue()?.startsWith("New session"))
-      return { kind: "starting" as const, workspace: workspaceSession(), text: language.t("workspace.lifecycle.starting") }
+      return { kind: "starting" as const, text: language.t("workspace.lifecycle.starting") }
     return
   })
   const workspaceOperationPending = (sessionID: string) =>
@@ -1450,18 +1441,7 @@ export function MessageTimeline(props: {
       }
       case "WorkspaceLifecycle": {
         const workspaceRow = row as Accessor<TimelineRowByTag<"WorkspaceLifecycle">>
-        const operation = createMemo(() => {
-          const rowOperation = workspaceRow().notice.operation
-          const current = WorkspaceOperation.get(serverSDK().scope, sessionID()!)
-          if (current?.messageID === workspaceRow().userMessageID) return current
-          if (
-            !rowOperation.messageID &&
-            current?.directory === rowOperation.directory &&
-            current.type === rowOperation.type
-          )
-            return current
-          return rowOperation
-        })
+        const operation = () => workspaceRow().notice.operation
         const pending = () => operation().status === "pending"
         const status = () => {
           if (operation().status === "failed") return language.t("workspace.move.failed")
@@ -1488,9 +1468,7 @@ export function MessageTimeline(props: {
                       "text-v2-state-fg-danger": operation().status === "failed",
                     }}
                   >
-                    <span class={operation().status === "failed" ? "" : "text-v2-text-text-base"}>
-                      {status()}
-                    </span>
+                    <span class={operation().status === "failed" ? "" : "text-v2-text-text-base"}>{status()}</span>
                     <Show when={operation().status !== "failed"}>
                       <span class="text-[11px] font-[530] italic text-v2-text-text-muted">·</span>
                       <IconV2 name="workspace-isolated" class="shrink-0 text-v2-icon-icon-muted" />
@@ -2096,10 +2074,7 @@ export function MessageTimeline(props: {
                                   {language.t("session.share.action.share")}...
                                 </MenuV2.Item>
                               </Show>
-                              <MenuV2.Item
-                                disabled={workspaceOperationPending(id)}
-                                onSelect={() => exportSession(id)}
-                              >
+                              <MenuV2.Item disabled={workspaceOperationPending(id)} onSelect={() => exportSession(id)}>
                                 {language.t("common.export")}...
                               </MenuV2.Item>
                               <MenuV2.Item

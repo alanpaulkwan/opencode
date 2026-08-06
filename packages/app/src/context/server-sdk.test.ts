@@ -26,9 +26,6 @@ describe("applyWorktreeEvent", () => {
     Worktree.pending(ServerScope.local, directory)
     applyWorktreeEvent(ServerScope.local, event, "failed")
     expect(Worktree.get(ServerScope.local, directory)).toEqual({ status: "ready" })
-  })
-
-  test("ignores unrelated global compatibility events", () => {
     expect(
       adaptWorktreeCompatibilityEvent({
         directory: "/repo",
@@ -39,20 +36,6 @@ describe("applyWorktreeEvent", () => {
         } as Event,
       }),
     ).toBeUndefined()
-  })
-
-  test("resolves readiness in the server scope that received the event", () => {
-    const directory = "/repo/worktree-ready"
-    Worktree.pending(ServerScope.local, directory)
-
-    expect(
-      applyWorktreeEvent(
-        ServerScope.local,
-        { directory, payload: { id: "ready", type: "worktree.ready", properties: { name: "ready" } } as Event },
-        "failed",
-      ),
-    ).toBe(true)
-    expect(Worktree.get(ServerScope.local, directory)).toEqual({ status: "ready" })
   })
 
   test("preserves the server failure message", () => {
@@ -73,53 +56,33 @@ describe("applyWorktreeEvent", () => {
     )
     expect(Worktree.get(ServerScope.local, directory)).toEqual({ status: "failed", message: "bootstrap failed" })
   })
-
-  test("does not let duplicate readiness settle placement after creation", () => {
-    const directory = "/repo/worktree-placement"
-    Worktree.ready(ServerScope.local, directory)
-    WorkspaceOperation.start(ServerScope.local, "session-worktree-placement", "create", directory)
-
-    applyWorktreeEvent(
-      ServerScope.local,
-      { directory, payload: { id: "ready-again", type: "worktree.ready", properties: { name: "ready" } } as Event },
-      "failed",
-    )
-    expect(WorkspaceOperation.get(ServerScope.local, "session-worktree-placement")?.status).toBe("pending")
-  })
 })
 
-test("moved events complete the matching workspace operation", () => {
-  WorkspaceOperation.start(ServerScope.local, "session-move", "move", "/workspace")
-  applyWorkspaceOperationEvent(ServerScope.local, {
-    directory: "/workspace",
-    payload: {
-      id: "moved",
-      type: "session.next.moved",
-      properties: {
-        timestamp: Date.now(),
-        sessionID: "session-move",
-        location: { directory: "/workspace" },
-      },
-    } as Event,
+test("legacy and current moved events complete matching operations", () => {
+  const events = [
+    {
+      id: "legacy",
+      payload: {
+        id: "moved",
+        type: "session.next.moved",
+        properties: { timestamp: Date.now(), sessionID: "legacy", location: { directory: "/workspace" } },
+      } as Event,
+    },
+    {
+      id: "current",
+      payload: adaptServerEvent({
+        id: "moved-current",
+        created: Date.now(),
+        type: "session.moved",
+        data: { sessionID: "current", location: { directory: "/workspace" } },
+      } as OpenCodeEvent),
+    },
+  ]
+  events.forEach((event) => {
+    WorkspaceOperation.start(ServerScope.local, event.id, "move", "/workspace")
+    applyWorkspaceOperationEvent(ServerScope.local, { directory: "/workspace", payload: event.payload })
+    expect(WorkspaceOperation.get(ServerScope.local, event.id)?.status).toBe("complete")
   })
-  expect(WorkspaceOperation.get(ServerScope.local, "session-move")?.status).toBe("complete")
-})
-
-test("current moved events complete the matching workspace operation", () => {
-  WorkspaceOperation.start(ServerScope.local, "session-current-move", "move", "/workspace")
-  applyWorkspaceOperationEvent(ServerScope.local, {
-    directory: "/workspace",
-    payload: adaptServerEvent({
-      id: "moved-current",
-      created: Date.now(),
-      type: "session.moved",
-      data: {
-        sessionID: "session-current-move",
-        location: { directory: "/workspace" },
-      },
-    } as OpenCodeEvent),
-  })
-  expect(WorkspaceOperation.get(ServerScope.local, "session-current-move")?.status).toBe("complete")
 })
 
 describe("resumeStreamAfterPageShow", () => {

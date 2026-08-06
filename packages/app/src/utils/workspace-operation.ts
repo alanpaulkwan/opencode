@@ -8,7 +8,6 @@ export type WorkspaceOperationState = {
   status: "pending" | "complete" | "failed"
   directory: string
   messageID?: string
-  message?: string
 }
 
 export function canMoveSessionToWorkspace(input: {
@@ -31,21 +30,6 @@ const write = (scope: ServerScope, sessionID: string, value: WorkspaceOperationS
   state.set(key(scope, sessionID), value)
   setVersion((current) => current + 1)
 }
-const settleCreate = (scope: ServerScope, directory: string, status: "complete" | "failed", message?: string) => {
-  const prefix = ScopedKey.prefix(scope)
-  const target = pathKey(directory)
-  const matches = [...state].filter(
-    ([id, item]) =>
-      id.startsWith(prefix) &&
-      item.type === "create" &&
-      item.status === "pending" &&
-      pathKey(item.directory) === target,
-  )
-  if (matches.length === 0) return
-  matches.forEach(([id, item]) => state.set(id, { ...item, status, message }))
-  setVersion((current) => current + 1)
-}
-
 export const WorkspaceOperation = {
   get(scope: ServerScope, sessionID: string) {
     version()
@@ -60,15 +44,9 @@ export const WorkspaceOperation = {
     if (directory && pathKey(directory) !== pathKey(current.directory)) return
     write(scope, sessionID, { ...current, status: "complete" })
   },
-  completeCreate(scope: ServerScope, directory: string) {
-    settleCreate(scope, directory, "complete")
-  },
-  failCreate(scope: ServerScope, directory: string, message: string) {
-    settleCreate(scope, directory, "failed", message)
-  },
-  fail(scope: ServerScope, sessionID: string, message: string) {
+  fail(scope: ServerScope, sessionID: string) {
     const current = state.get(key(scope, sessionID))
     if (!current || current.status === "complete") return
-    write(scope, sessionID, { ...current, status: "failed", message })
+    write(scope, sessionID, { ...current, status: "failed" })
   },
 }

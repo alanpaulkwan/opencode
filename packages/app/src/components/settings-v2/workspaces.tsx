@@ -29,9 +29,7 @@ import {
   inspectWorkspaceDeletion,
   mergeWorkspaceSessionInventory,
   removeWorkspacesSequentially,
-  runWorkspaceDeleteTransaction,
   sessionsForWorkspace,
-  type WorkspaceDeleteTransaction,
   type WorkspaceDeleteInspection,
   workspaceInventory,
 } from "@/utils/workspace"
@@ -53,9 +51,7 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
   const platform = usePlatform()
   const [store, setStore] = createStore({
     project: "all",
-    deleting: undefined as string | undefined,
-    deletingAll: false,
-    transaction: undefined as WorkspaceDeleteTransaction,
+    transaction: undefined as "confirm" | "running" | undefined,
   })
 
   const workspaces = createMemo(() => workspaceInventory(serverSync().data.project))
@@ -97,7 +93,7 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
     if (sessionQuery.isPending) return language.t("session.messages.loading")
     if (sessionQuery.isError) return language.t("common.requestFailed")
     const count = workspaceSessions(workspace).length
-    return language.t(count === 1 ? "settings.workspaces.sessions.one" : "settings.workspaces.sessions.other", {
+    return language.plural("settings.workspaces.sessions", count, {
       count,
       project: projectName(workspace.project),
     })
@@ -113,30 +109,23 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
   }
 
   const inspect = async (workspace: Workspace, context = captureDeleteContext()) => {
-    const [status, sessions] = await Promise.all([
-      Promise.all([
-        context.sdk.api.vcs.status({ location: { directory: workspace.directory } }),
-        context.sdk.api.vcs.diff({ location: { directory: workspace.directory }, mode: "branch" }),
-      ])
-        .then(([working, branch]) =>
-          working.data.length > 0 || branch.data.length > 0 ? ("dirty" as const) : ("clean" as const),
-        )
-        .catch(() => "unknown" as const),
-      loadSessions(context).catch(() => undefined),
+    const [working, branch, sessions] = await Promise.all([
+      context.sdk.api.vcs.status({ location: { directory: workspace.directory } }),
+      context.sdk.api.vcs.diff({ location: { directory: workspace.directory }, mode: "branch" }),
+      loadSessions(context),
     ])
     const result = inspectWorkspaceDeletion({
       workspace: workspace.directory,
       activeDirectory: context.activeDirectory,
-      sessions: sessions ?? [],
-      status: sessions ? status : "unknown",
+      sessions,
+      status: working.data.length > 0 || branch.data.length > 0 ? "dirty" : "clean",
     })
-    return { result, sessions: sessions ?? [] }
+    return { result, sessions }
   }
   const inspectionMessage = (result: WorkspaceDeleteInspection) => {
     if (result === "active") return language.t("settings.workspaces.delete.blocked.active")
     if (result === "linked") return language.t("settings.workspaces.delete.blocked.linked")
     if (result === "dirty") return language.t("workspace.status.dirty")
-    if (result === "unknown") return language.t("workspace.status.error")
     return language.t("workspace.status.clean")
   }
   const blocked = (result: WorkspaceDeleteInspection) => {
@@ -147,12 +136,10 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
     })
   }
 
-  const remove = async (workspace: Workspace, bulk = false, context = captureDeleteContext()) => {
-    if (!bulk) setStore("deleting", pathKey(workspace.directory))
+  const remove = async (workspace: Workspace, allowDirty = false, context = captureDeleteContext()) => {
     const preflight = await inspect(workspace, context)
-    if (preflight.result !== "safe" && (bulk || preflight.result !== "dirty")) {
+    if (preflight.result !== "safe" && (!allowDirty || preflight.result !== "dirty")) {
       blocked(preflight.result)
-      if (!bulk) setStore("deleting", undefined)
       return
     }
     const removed = await context.sdk.client.worktree
@@ -169,7 +156,6 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
         })
         return false
       })
-    if (!bulk) setStore("deleting", undefined)
     if (!removed) return
     tabs.store.forEach((tab) => {
       if (tab.type !== "draft" || tab.server !== context.server) return
@@ -203,19 +189,20 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
   const releaseConfirmation = () => {
     if (store.transaction === "confirm") setStore("transaction", undefined)
   }
-  let transactionID = 0
   const transact = async (task: () => Promise<void>) => {
-    await runWorkspaceDeleteTransaction({
-      token: ++transactionID,
-      set: (update) => setStore("transaction", update),
-      task: async () => {
-        try {
-          await task()
-        } finally {
-          setStore({ deleting: undefined, deletingAll: false })
-        }
-      },
-    })
+    if (store.transaction !== "confirm") return
+    setStore("transaction", "running")
+    try {
+      await task()
+    } catch (error) {
+      showToast({
+        variant: "error",
+        title: language.t("workspace.delete.failed.title"),
+        description: error instanceof Error ? error.message : language.t("common.requestFailed"),
+      })
+    } finally {
+      setStore("transaction", undefined)
+    }
   }
   const confirmDelete = (workspace: Workspace) => {
     if (store.transaction) return
@@ -230,15 +217,14 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
           inspectionID={current}
           inspect={() => inspect(workspace, context)}
           inspectionMessage={inspectionMessage}
-          onDelete={() => transact(() => remove(workspace, false, context))}
+          onDelete={() => transact(() => remove(workspace, true, context))}
         />
       ),
       releaseConfirmation,
     )
   }
   const removeAll = async (inventory: Workspace[], context: ReturnType<typeof captureDeleteContext>) => {
-    setStore("deletingAll", true)
-    await removeWorkspacesSequentially(inventory, (workspace) => remove(workspace, true, context))
+    await removeWorkspacesSequentially(inventory, (workspace) => remove(workspace, false, context))
   }
   const confirmDeleteAll = () => {
     if (store.transaction) return
@@ -267,12 +253,7 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
       <div class="settings-v2-tab-body settings-v2-workspaces">
         <div class="settings-v2-workspaces-toolbar">
           <span class="settings-v2-workspaces-count">
-            {language.t(
-              filtered().length === 1 ? "settings.workspaces.count.one" : "settings.workspaces.count.other",
-              {
-                count: filtered().length,
-              },
-            )}
+            {language.plural("settings.workspaces.count", filtered().length)}
           </span>
           <div class="settings-v2-workspaces-toolbar-actions">
             <Show when={projects().length > 1}>
@@ -368,7 +349,7 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
                         variant="ghost-muted"
                         size="small"
                         aria-label={language.t("workspace.delete.confirm", { name: getFilename(workspace.directory) })}
-                        disabled={!!store.transaction || store.deleting === pathKey(workspace.directory)}
+                        disabled={!!store.transaction}
                         icon={<Icon name="trash" size="small" />}
                         onClick={() => confirmDelete(workspace)}
                       />
@@ -473,9 +454,7 @@ function DialogDeleteWorkspace(props: {
           type="button"
           variant="danger"
           disabled={
-            status.isPending ||
-            status.isError ||
-            (status.data?.result !== "safe" && status.data?.result !== "dirty")
+            status.isPending || status.isError || (status.data?.result !== "safe" && status.data?.result !== "dirty")
           }
           onClick={remove}
         >

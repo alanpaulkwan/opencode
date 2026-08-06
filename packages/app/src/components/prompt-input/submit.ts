@@ -284,7 +284,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     if (queued) {
       queued.abort.abort()
       queued.cleanup()
-      WorkspaceOperation.fail(queued.scope, queued.sessionID, "aborted")
+      WorkspaceOperation.fail(queued.scope, queued.sessionID)
       pending.delete(key)
       return Promise.resolve()
     }
@@ -543,7 +543,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
         const worktree = WorktreeState.get(submissionScope, sessionDirectory)
         WorkspaceOperation.start(submissionScope, session.id, "create", sessionDirectory, messageID)
         if (worktree?.status === "ready") WorkspaceOperation.complete(submissionScope, session.id)
-        if (worktree?.status === "failed") WorkspaceOperation.fail(submissionScope, session.id, worktree.message)
+        if (worktree?.status === "failed") WorkspaceOperation.fail(submissionScope, session.id)
       }
 
       const waitForWorktree = async (cleanup: VoidFunction) => {
@@ -554,7 +554,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
           return true
         }
         if (worktree.status === "failed") {
-          WorkspaceOperation.fail(submissionScope, session.id, worktree.message)
+          WorkspaceOperation.fail(submissionScope, session.id)
           throw new Error(worktree.message)
         }
 
@@ -610,7 +610,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
         })
         if (controller.signal.aborted) return false
         if (result.status === "failed") {
-          WorkspaceOperation.fail(submissionScope, session.id, result.message)
+          WorkspaceOperation.fail(submissionScope, session.id)
           throw new Error(result.message)
         }
         WorkspaceOperation.complete(submissionScope, session.id)

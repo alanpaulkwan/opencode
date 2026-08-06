@@ -45,9 +45,8 @@ export function SessionWorkspaceMenu(props: {
     workspaceDirectories(props.project).filter((workspace) => pathKey(workspace) !== pathKey(props.directory))
 
   const fail = (scope: ServerScope, sessionID: string, message: string) => {
-    setStore("selected", undefined)
     if (WorkspaceOperation.get(scope, sessionID)?.status === "complete") return
-    WorkspaceOperation.fail(scope, sessionID, message)
+    WorkspaceOperation.fail(scope, sessionID)
     showToast({ variant: "error", title: language.t("workspace.move.failed"), description: message })
   }
   const move = async (selection: "create" | string) => {
@@ -72,10 +71,7 @@ export function SessionWorkspaceMenu(props: {
       if (!destination) return
 
       WorkspaceOperation.start(scope, sessionID, selection === "create" ? "create" : "move", destination, messageID)
-      if (sync.session.data.session_working(sessionID)) {
-        fail(scope, sessionID, language.t("workspace.move.failed"))
-        return
-      }
+      if (sync.session.data.session_working(sessionID)) throw new Error(language.t("workspace.move.failed"))
       await workspaceRequestWithTimeout(
         (signal) =>
           sdk.client.experimental.controlPlane.moveSession(
@@ -89,26 +85,17 @@ export function SessionWorkspaceMenu(props: {
         language.t("workspace.move.failed"),
         WORKSPACE_PREPARATION_TIMEOUT_MS,
       )
-        .then(async () => {
-          for (const attempt of Array.from({ length: 20 }, (_, index) => index)) {
-            const session = await workspaceRequestWithTimeout(
-              (signal) => sync.session.resolve(sessionID, { force: true, signal }),
-              language.t("workspace.move.failed"),
-              WORKSPACE_PLACEMENT_REFRESH_TIMEOUT_MS,
-            ).catch(() => undefined)
-            if (session && pathKey(session.directory) === pathKey(destination)) {
-              WorkspaceOperation.complete(scope, sessionID, destination)
-              sync.reindexSession(sessionID, source)
-              return
-            }
-            if (WorkspaceOperation.get(scope, sessionID)?.status === "complete") return
-            await new Promise((resolve) => setTimeout(resolve, Math.min(250 + attempt * 50, 1_000)))
-          }
-          fail(scope, sessionID, language.t("workspace.move.failed"))
-        })
-        .catch((error) =>
-          fail(scope, sessionID, error instanceof Error ? error.message : language.t("common.requestFailed")),
-        )
+      const session = await workspaceRequestWithTimeout(
+        (signal) => sync.session.resolve(sessionID, { force: true, signal }),
+        language.t("workspace.move.failed"),
+        WORKSPACE_PLACEMENT_REFRESH_TIMEOUT_MS,
+      )
+      if (!session || pathKey(session.directory) !== pathKey(destination))
+        throw new Error(language.t("workspace.move.failed"))
+      WorkspaceOperation.complete(scope, sessionID, destination)
+      sync.reindexSession(sessionID, source)
+    } catch (error) {
+      fail(scope, sessionID, error instanceof Error ? error.message : language.t("common.requestFailed"))
     } finally {
       setStore("selected", undefined)
     }

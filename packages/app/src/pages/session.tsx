@@ -2077,7 +2077,7 @@ export default function Page() {
         >
           {hasReview()
             ? language.t("session.review.filesChanged", { count: reviewCount() })
-            : language.t("session.review.change.other")}
+            : language.plural("session.review.change", 0)}
         </Tabs.Trigger>
       </Tabs.List>
     </Tabs>
