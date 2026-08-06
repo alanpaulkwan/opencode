@@ -691,7 +691,7 @@ export function PromptInputV2SubmitButton(props: {
         tabIndex={props.mode === "normal" ? undefined : -1}
         icon={props.stopping ? "stop" : props.mode === "shell" ? "arrow-undo-down" : "arrow-up"}
         variant="primary"
-        class="size-7 rounded-md p-[6px] text-v2-text-text-inverse shadow-[var(--v2-elevation-button-contrast)] disabled:opacity-40 disabled:text-v2-icon-icon-muted"
+        class="size-7 rounded-md p-[6px] text-v2-text-text-contrast shadow-[var(--v2-elevation-button-contrast)] disabled:opacity-40 disabled:text-v2-icon-icon-muted"
         style={{
           "background-image": props.stopping
             ? "linear-gradient(180deg,var(--v2-alpha-light-20) 0%,var(--v2-alpha-light-0) 100%),linear-gradient(90deg,var(--v2-state-bg-danger) 0%,var(--v2-state-bg-danger) 100%)"
