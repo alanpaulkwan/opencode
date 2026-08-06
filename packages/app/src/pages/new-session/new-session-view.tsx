@@ -50,7 +50,7 @@ export function NewSessionView(props: {
           <div class={NEW_SESSION_CONTENT_WIDTH}>
             <WordmarkV2 class="h-auto w-full text-v2-background-bg-inverse" />
             <div class="mt-8 flex flex-col gap-8">
-              <PromptInputV2Composer controller={props.input} />
+              <PromptInputV2Composer controller={props.input} accentSubmit={props.workspace.selection.workspace()} />
               <Show when={props.project.empty()}>
                 <PromptProjectAddButton controller={props.project} />
               </Show>

@@ -5,7 +5,12 @@ import { useServerSync } from "@/context/server-sync"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { pathKey } from "@/utils/path-key"
-import { isWorkspaceSelection, workspaceDefaultSelection, workspaceDirectories } from "@/utils/workspace"
+import {
+  isWorkspaceDirectory,
+  isWorkspaceSelection,
+  workspaceDefaultSelection,
+  workspaceDirectories,
+} from "@/utils/workspace"
 
 export function resolveNewSessionWorktree(input: {
   enabled: boolean
@@ -87,6 +92,11 @@ export function createNewSessionWorkspaceController(input: {
   return {
     selection: {
       value,
+      workspace: createMemo(() => {
+        const project = sync().project
+        const current = value()
+        return current === "create" || (!!project && isWorkspaceDirectory(project, current))
+      }),
       reset: () => input.setSelected(undefined),
       remember,
       set: (worktree: string) => {
