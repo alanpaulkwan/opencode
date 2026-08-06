@@ -72,8 +72,6 @@ export function NewSessionView(props: {
                       workspaces={props.workspace.project.workspaces()}
                       branch={props.workspace.bar.branch()}
                       onboarding={onboardingReady() && !onboarding.used}
-                      intro={showCard()}
-                      onIntroDismiss={() => setOnboarding("cardDismissed", true)}
                       onChange={select}
                       onDone={props.input.restoreFocus}
                       onViewAll={props.workspace.project.openAll}

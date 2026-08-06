@@ -78,25 +78,12 @@ test("selects local, new, and existing workspaces from the ready-ish start menu"
   await expectAppVisible(page.locator('[data-component="prompt-input"]'))
 
   const trigger = page.getByRole("button", { name: /^local$/i })
-  const intro = page.locator('[data-component="workspace-onboarding-card"]')
   const dot = page.locator('[data-slot="workspace-onboarding-dot"]')
   await expect(trigger).toBeVisible()
-  await expect(intro).toContainText("Isolate sessions with workspaces")
   await expect(dot).toBeVisible()
-  await expect
-    .poll(async () => {
-      const [triggerBox, introBox] = await Promise.all([trigger.boundingBox(), intro.boundingBox()])
-      if (!triggerBox || !introBox) return
-      return {
-        right: Math.round(introBox.x + introBox.width - triggerBox.x - triggerBox.width),
-        top: Math.round(introBox.y - triggerBox.y - triggerBox.height),
-      }
-    })
-    .toEqual({ right: 0, top: 0 })
   await trigger.hover()
-  await expect(page.getByRole("tooltip")).toContainText("Select where to run session")
+  await expect(page.getByRole("tooltip")).toContainText("Isolate sessions with workspaces")
   await trigger.click()
-  await expect(intro).toBeHidden()
   await expect(page.getByRole("menuitem", { name: /Local repository/ })).toBeVisible()
   await page.getByRole("menuitem", { name: /Local repository/ }).click()
   await expect(dot).toBeVisible()

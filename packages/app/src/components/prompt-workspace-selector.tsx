@@ -11,8 +11,6 @@ export function PromptWorkspaceSelector(props: {
   workspaces: string[]
   branch?: string
   onboarding?: boolean
-  intro?: boolean
-  onIntroDismiss?: () => void
   onChange: (value: string) => void
   onDone: () => void
   onViewAll: () => void
@@ -39,7 +37,6 @@ export function PromptWorkspaceSelector(props: {
   const onOpenChange = (open: boolean) => {
     if (open) {
       setSearch("")
-      props.onIntroDismiss?.()
       return
     }
     const action = pending
@@ -63,8 +60,23 @@ export function PromptWorkspaceSelector(props: {
       <TooltipV2
         placement="top"
         openDelay={800}
-        value={language.t("session.new.workspace.trigger.tooltip")}
-        class="relative min-w-0"
+        value={
+          props.onboarding ? (
+            <div class="flex flex-col gap-1 text-left">
+              <div class="flex items-center gap-1.5 font-[530] text-v2-text-text-base">
+                <Icon name="workspace-isolated" size="small" class="shrink-0 text-v2-text-text-accent" />
+                <span>{language.t("workspace.onboarding.title")}</span>
+              </div>
+              <span class="font-[440] text-v2-text-text-muted">
+                {language.t("workspace.onboarding.description")}
+              </span>
+            </div>
+          ) : (
+            language.t("session.new.workspace.trigger.tooltip")
+          )
+        }
+        contentClass={props.onboarding ? "max-w-[280px]" : undefined}
+        class="min-w-0"
       >
         <MenuV2 placement="bottom" gutter={4} onOpenChange={onOpenChange}>
           <MenuV2.Trigger
@@ -220,20 +232,6 @@ export function PromptWorkspaceSelector(props: {
             </MenuV2.Content>
           </MenuV2.Portal>
         </MenuV2>
-        <Show when={props.intro}>
-          <div
-            data-component="workspace-onboarding-card"
-            class="pointer-events-none absolute right-0 top-full z-50 flex w-[280px] flex-col gap-2 rounded-lg bg-v2-background-bg-base p-3 shadow-[var(--v2-elevation-floating)]"
-          >
-            <div class="flex items-start gap-2 text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-muted">
-              <Icon name="workspace-isolated" class="shrink-0 text-v2-text-text-accent" />
-              <span class="min-w-0 flex-1">{language.t("workspace.onboarding.title")}</span>
-            </div>
-            <p class="text-[13px] font-[440] leading-4 tracking-[-0.04px] text-v2-text-text-muted">
-              {language.t("workspace.onboarding.description")}
-            </p>
-          </div>
-        </Show>
       </TooltipV2>
       <PromptGitStatus branch={props.branch} from={selected() === "create"} />
     </>
