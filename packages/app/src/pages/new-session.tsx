@@ -4,7 +4,7 @@ import { useTitlebarRightMount } from "@/components/titlebar"
 import { useSettings } from "@/context/settings"
 import { useTabs, type DraftTab } from "@/context/tabs"
 import { useSearchParams } from "@solidjs/router"
-import { createEffect, createMemo, createResource } from "solid-js"
+import { createEffect, createMemo, createResource, createSignal } from "solid-js"
 import { createNewSessionDraftController } from "./new-session/new-session-draft-controller"
 import { NewSessionStatus, NewSessionView } from "./new-session/new-session-view"
 import { createNewSessionWorkspaceController } from "./new-session/new-session-workspace-controller"
@@ -17,13 +17,18 @@ export default function NewSessionPage() {
   const [search] = useSearchParams<{ draftId?: string }>()
   const tabs = useTabs()
   const openWorkspaces = useSettingsDialog("workspaces")
+  const [localWorktree, setLocalWorktree] = createSignal<string>()
   const draftTab = createMemo(() =>
     tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId),
   )
   const workspace = createNewSessionWorkspaceController({
-    selected: () => draftTab()?.worktree,
+    selected: () => (search.draftId ? draftTab()?.worktree : localWorktree()),
     setSelected: (worktree) => {
-      if (search.draftId) tabs.updateDraft(search.draftId, { worktree })
+      if (search.draftId) {
+        tabs.updateDraft(search.draftId, { worktree })
+        return
+      }
+      setLocalWorktree(worktree)
     },
     onViewAll: openWorkspaces,
   })
