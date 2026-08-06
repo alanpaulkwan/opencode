@@ -1,7 +1,7 @@
 import { Component, createMemo, createSignal, startTransition } from "solid-js"
 import { Dialog } from "@opencode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
-import { Icon } from "@opencode-ai/ui/icon"
+import { Icon } from "@opencode-ai/ui/v2/icon"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { SettingsGeneralV2 } from "./general"
@@ -70,7 +70,7 @@ export const DialogSettings: Component<{
                   <TabsV2.SectionTitle>{language.t("settings.section.server")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1.5 w-full">
                     <TabsV2.Trigger value="workspaces">
-                      <Icon name="fork" />
+                      <Icon name="workspace-isolated" />
                       {language.t("settings.tab.workspaces")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="servers">

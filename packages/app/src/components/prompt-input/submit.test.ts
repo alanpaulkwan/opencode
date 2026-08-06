@@ -170,6 +170,7 @@ beforeAll(async () => {
 
   mock.module("@opencode-ai/ui/toast", () => ({
     Toast: { Region: () => null },
+    toaster: { create: () => undefined, show: () => undefined, dismiss: () => undefined },
     showToast: () => 0,
   }))
 
@@ -794,6 +795,7 @@ describe("prompt submit worktree selection", () => {
     })
 
     await submit.handleSubmit({ preventDefault: () => undefined } as unknown as Event)
+    await settle()
 
     expect(sentCommands).toEqual([
       {

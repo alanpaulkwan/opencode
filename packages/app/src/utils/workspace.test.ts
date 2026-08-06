@@ -25,6 +25,12 @@ describe("isWorkspaceDirectory", () => {
     expect(isWorkspaceDirectory(project, "C:\\repo")).toBe(false)
     expect(isWorkspaceDirectory(project, "C:\\repo-workspaces\\feature")).toBe(true)
     expect(isWorkspaceDirectory(project, "c:\\repo-workspaces\\feature\\packages\\app")).toBe(true)
+    expect(
+      isWorkspaceDirectory(
+        { worktree: "/repo", sandboxes: ["/repo/.worktrees/feature"] },
+        "/repo/.worktrees/feature",
+      ),
+    ).toBe(true)
   })
 
   test("does not classify unknown directories", () => {
@@ -156,6 +162,13 @@ test("blocks unsafe workspace deletion", () => {
   expect(inspectWorkspaceDeletion({ workspace: "/workspace", sessions: [], status: "dirty" })).toBe("dirty")
   expect(inspectWorkspaceDeletion({ workspace: "/workspace", sessions: [], status: "unknown" })).toBe("unknown")
   expect(inspectWorkspaceDeletion({ workspace: "/workspace", sessions: [], status: "clean" })).toBe("safe")
+  expect(
+    inspectWorkspaceDeletion({
+      workspace: "/workspace",
+      sessions: [{ directory: "/workspace", time: { created: 1, updated: 1, archived: 2 } } as Session],
+      status: "clean",
+    }),
+  ).toBe("safe")
 })
 
 test("groups nested non-archived workspace sessions by latest activity", () => {

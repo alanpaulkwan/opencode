@@ -73,14 +73,20 @@ export function inspectWorkspaceDeletion(input: {
   status: "clean" | "dirty" | "unknown"
 }): WorkspaceDeleteInspection {
   if (input.activeDirectory && containsDirectory(input.workspace, input.activeDirectory)) return "active"
-  if (input.sessions.some((session) => containsDirectory(input.workspace, session.directory))) return "linked"
+  if (
+    input.sessions.some(
+      (session) => session.time?.archived === undefined && containsDirectory(input.workspace, session.directory),
+    )
+  )
+    return "linked"
   if (input.status === "unknown") return "unknown"
   if (input.status === "dirty") return "dirty"
   return "safe"
 }
 
 export function isWorkspaceDirectory(project: WorkspaceProject | undefined, directory: string) {
-  if (!project || containsDirectory(project.worktree, directory)) return false
+  if (!project || (containsDirectory(project.worktree, directory) && containsDirectory(directory, project.worktree)))
+    return false
   return workspaceDirectories(project).some((workspace) => containsDirectory(workspace, directory))
 }
 

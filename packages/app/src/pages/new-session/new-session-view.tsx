@@ -1,6 +1,6 @@
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
-import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/v2/icon"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { WordmarkV2 } from "@opencode-ai/ui/v2/wordmark-v2"
 import { Show, createMemo, createSignal, type Accessor } from "solid-js"
@@ -33,10 +33,7 @@ export function NewSessionView(props: {
 }) {
   const [onboarding, setOnboarding, , onboardingReady] = persisted(
     Persist.global("workspace-onboarding"),
-    createStore({ cardDismissed: false, used: false }),
-  )
-  const showCard = createMemo(
-    () => onboardingReady() && props.workspace.bar.visible() && !onboarding.cardDismissed && !onboarding.used,
+    createStore({ used: false }),
   )
   const select = (value: string) => {
     props.workspace.selection.set(value)
@@ -151,7 +148,7 @@ function ProviderTip() {
           >
             <span class="truncate">{language.t("home.providerTip")}</span>
             <span class="flex size-6 shrink-0 items-center justify-center" aria-hidden="true">
-              <IconV2 name="chevron-down" size="small" class="-rotate-90" />
+              <Icon name="chevron-down" size="small" class="-rotate-90" />
             </span>
           </button>
           <TooltipV2
@@ -166,7 +163,7 @@ function ProviderTip() {
               aria-label={language.t("common.dismiss")}
               onClick={() => setPersistedState("dismissedAt", Date.now())}
             >
-              <IconV2 name="xmark-small" />
+              <Icon name="xmark-small" />
             </button>
           </TooltipV2>
         </div>

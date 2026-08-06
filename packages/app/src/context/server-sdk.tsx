@@ -291,56 +291,11 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
   }
 
   let streamErrorLogged = false
-  let worktreeStreamErrorLogged = false
   const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
   let attempt: AbortController | undefined
-  let worktreeAttempt: AbortController | undefined
   let run: Promise<void> | undefined
   let started = false
   let generation = 0
-
-  const consumeWorktreeEvents = async (active: number) => {
-    // Current worktree lifecycle events are still emitted only on the global compatibility stream.
-    while (!abort.signal.aborted && started && generation === active) {
-      const controller = new AbortController()
-      worktreeAttempt = controller
-      const onAbort = () => controller.abort()
-      abort.signal.addEventListener("abort", onAbort)
-      try {
-        const events = (await eventSdk.global.event({ signal: controller.signal })).stream
-        let yielded = Date.now()
-        for await (const event of events) {
-          const queued = adaptWorktreeCompatibilityEvent({
-            directory: event.directory,
-            payload: event.payload as Event,
-          })
-          if (queued) {
-            worktreeStreamErrorLogged = false
-            if (enqueueServerEvent(queue, queued)) schedule()
-          }
-
-          if (Date.now() - yielded < STREAM_YIELD_MS) continue
-          yielded = Date.now()
-          await wait(0)
-        }
-      } catch (error) {
-        if (!isStreamClosed(error, controller.signal) && !worktreeStreamErrorLogged) {
-          worktreeStreamErrorLogged = true
-          console.error("[global-sdk] worktree event stream failed", {
-            url: server.http.url,
-            fetch: eventFetch ? "platform" : "webview",
-            error,
-          })
-        }
-      } finally {
-        abort.signal.removeEventListener("abort", onAbort)
-        if (worktreeAttempt === controller) worktreeAttempt = undefined
-      }
-
-      if (abort.signal.aborted || !started || generation !== active) return
-      await wait(RECONNECT_DELAY_MS)
-    }
-  }
 
   const start = () => {
     if (started) return run
@@ -350,7 +305,6 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
     const current = (async () => {
       if (previous) await previous
       const kind = await protocol
-      if (kind === "v2") void consumeWorktreeEvents(active)
       // oxlint-disable-next-line no-unmodified-loop-condition -- `started` is set to false by stop() which also aborts; both flags are checked to allow graceful exit
       while (!abort.signal.aborted && started && generation === active) {
         attempt = new AbortController()
@@ -406,7 +360,6 @@ function createServerSdkContextBase(server: ServerConnection.Any, scope: ServerS
     started = false
     generation++
     attempt?.abort()
-    worktreeAttempt?.abort()
   }
 
   onMount(() => {

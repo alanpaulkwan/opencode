@@ -1203,4 +1203,19 @@ export const dict = {
   "help.tabs.persistence": "Wenn Sie die App erneut öffnen, sind Ihre Tabs weiterhin geöffnet.",
   "help.tabs.worktrees":
     "Das neue Design unterstützt Git-Worktrees noch nicht. Diese Funktion folgt in Kürze. Wenn Sie das bisherige Layout vorerst weiterverwenden möchten, können Sie in den Einstellungen zwischen den Layouts wechseln. Beachten Sie jedoch, dass das neue Layout in einigen Wochen dauerhaft verwendet wird.",
-} satisfies Partial<Record<Keys, string>>
+  "command.session.export": "Export session",
+  "command.session.export.description": "Export the full session transcript as JSON",
+  "context.export.session": "Export session",
+  "toast.session.export.success.title": "Session exported",
+  "toast.session.export.success.description": "Saved session to {{filename}}",
+  "toast.session.export.failed.title": "Failed to export session",
+  "toast.session.export.failed.description": "An error occurred while exporting the session",
+  "common.export": "Export",
+  "workspace.move.menu.title": "Move session to",
+  "workspace.lifecycle.starting": "Starting session",
+  "workspace.onboarding.title": "Isolate sessions with workspaces",
+  "workspace.onboarding.description": "Each gets its own checkout, so nothing interferes with your local repository",
+  "session.summary.title": "Session details",
+  "session.summary.noBranch": "No branch",
+  "session.summary.basedOn": "Based on {{branch}}",
+}

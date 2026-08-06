@@ -290,7 +290,7 @@ function WorkspaceMoveAction(props: {
             : "flex h-[46px] w-full items-center gap-2 rounded-b-[6px] px-3 pr-9 pt-2.5 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-muted focus-visible:outline-none"
         }
       >
-        <IconV2 name={inline() ? "workspace-new" : "workspace-new"} class="shrink-0 text-v2-icon-icon-muted" />
+        <IconV2 name="workspace-new" class="shrink-0 text-v2-icon-icon-muted" />
         <span class="min-w-0 truncate">{language.t("workspace.move.title")}</span>
       </SessionWorkspaceMenu>
       <button
@@ -337,7 +337,7 @@ function SessionSummaryPanel(props: {
       data-component="session-summary-panel"
       class="w-[280px]"
     >
-      <div class="relative z-[70] flex flex-col gap-1 overflow-hidden rounded-[6px] bg-v2-background-bg-base px-0.5 py-1.5 shadow-[var(--v2-elevation-raised)]">
+      <div class="relative z-10 flex flex-col gap-1 overflow-hidden rounded-[6px] bg-v2-background-bg-base px-0.5 py-1.5 shadow-[var(--v2-elevation-raised)]">
         <div class={row}>
           <ProjectAvatar
             fallback={displayName(props.project)}
