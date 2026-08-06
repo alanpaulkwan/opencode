@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { PartGroup } from "@opencode-ai/session-ui/message-part"
-import { appendTurnExtensions, reuseTimelineRows } from "./row-reconciliation"
+import { insertAfterUserMessage, reuseTimelineRows } from "./row-reconciliation"
 import { TimelineRow } from "./timeline-row"
 
 const context = (key: string, partIDs: string[], userMessageID = "user-1") =>
@@ -95,7 +95,7 @@ describe("reuseTimelineRows", () => {
   })
 })
 
-test("appends turn extensions after projected turn rows", () => {
+test("inserts lifecycle extensions immediately after the user message", () => {
   const rows: TimelineRow.TimelineRow[] = [user(), new TimelineRow.DiffSummary({ userMessageID: "user-1", diffs: [] })]
   const lifecycle = new TimelineRow.WorkspaceLifecycle({
     userMessageID: "user-1",
@@ -105,9 +105,9 @@ test("appends turn extensions after projected turn rows", () => {
     },
   })
 
-  expect(appendTurnExtensions(rows, [lifecycle]).map((row) => row._tag)).toEqual([
+  expect(insertAfterUserMessage(rows, [lifecycle]).map((row) => row._tag)).toEqual([
     "UserMessage",
-    "DiffSummary",
     "WorkspaceLifecycle",
+    "DiffSummary",
   ])
 })

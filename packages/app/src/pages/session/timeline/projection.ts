@@ -15,7 +15,7 @@ export function createTimelineProjection(input: {
   showReasoningSummaries: Accessor<boolean>
   inlineComments: Accessor<boolean>
   extensionRevision?: Accessor<unknown>
-  afterTurn?: (message: UserMessage) => TimelineRow.TimelineRow[]
+  afterUser?: (message: UserMessage) => TimelineRow.TimelineRow[]
 }) {
   const messageByID = createMemo(() => new Map(input.messages().map((message) => [message.id, message] as const)))
   const assistantMessagesByParent = createMemo(() => {
@@ -41,7 +41,7 @@ export function createTimelineProjection(input: {
       input.status().type,
       input.inlineComments(),
       input.userMessages(),
-      input.extensionRevision && extension === undefined ? undefined : input.afterTurn,
+      input.extensionRevision && extension === undefined ? undefined : input.afterUser,
     )
   })
   const activeMessageID = createMemo(() => projection().activeMessageID)

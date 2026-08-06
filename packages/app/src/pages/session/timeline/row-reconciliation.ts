@@ -3,8 +3,9 @@ import { TimelineRow } from "./timeline-row"
 type ContextRow = Extract<TimelineRow.TimelineRow, { _tag: "AssistantPart" }>
 type PriorContext = { index: number; row: ContextRow }
 
-export function appendTurnExtensions(rows: TimelineRow.TimelineRow[], extensions: TimelineRow.TimelineRow[]) {
-  rows.push(...extensions)
+export function insertAfterUserMessage(rows: TimelineRow.TimelineRow[], extensions: TimelineRow.TimelineRow[]) {
+  const index = rows.findIndex((row) => row._tag === "UserMessage")
+  rows.splice(index + 1, 0, ...extensions)
   return rows
 }
 

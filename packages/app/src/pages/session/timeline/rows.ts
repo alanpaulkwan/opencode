@@ -4,7 +4,7 @@ import { AssistantMessage, Part, SessionStatus, UserMessage } from "@opencode-ai
 import { groupParts, renderable, type PartGroup } from "@opencode-ai/session-ui/message-part"
 import { TimelineRow, type SummaryDiff } from "./timeline-row"
 import { uniqueSummaryDiffs } from "./summary-diffs"
-import { appendTurnExtensions } from "./row-reconciliation"
+import { insertAfterUserMessage } from "./row-reconciliation"
 
 export { TimelineRow, type SummaryDiff } from "./timeline-row"
 
@@ -45,7 +45,7 @@ export namespace Timeline {
     status: SessionStatus["type"],
     inlineComments: boolean,
     projectedUserMessages: UserMessage[],
-    afterTurn?: (message: UserMessage) => TimelineRow.TimelineRow[],
+    afterUser?: (message: UserMessage) => TimelineRow.TimelineRow[],
   ) {
     const turns: { user: UserMessage; assistants: AssistantMessage[] }[] = []
     const turnByUserID = new Map<string, (typeof turns)[number]>()
@@ -99,8 +99,8 @@ export namespace Timeline {
           turn.user.id === activeMessageID,
           inlineComments,
         )
-        if (!afterTurn) return rows
-        return appendTurnExtensions(rows, afterTurn(turn.user))
+        if (!afterUser) return rows
+        return insertAfterUserMessage(rows, afterUser(turn.user))
       }),
     }
   }

@@ -563,7 +563,7 @@ export function MessageTimeline(props: {
     showReasoningSummaries: settings.general.showReasoningSummaries,
     inlineComments: settings.general.newLayoutDesigns,
     extensionRevision: workspaceOperation,
-    afterTurn: (message) => {
+    afterUser: (message) => {
       const operation = workspaceOperation()
       if (!operation) return []
       if (operation.messageID !== message.id && (operation.messageID || message.id !== props.userMessages.at(-1)?.id))
