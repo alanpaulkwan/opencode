@@ -1,7 +1,7 @@
 import { Component, createMemo, createSignal, startTransition } from "solid-js"
 import { Dialog } from "@opencode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
-import { Icon } from "@opencode-ai/ui/v2/icon"
+import { Icon } from "@opencode-ai/ui/icon"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { SettingsGeneralV2 } from "./general"
@@ -56,11 +56,11 @@ export const DialogSettings: Component<{
                   <TabsV2.SectionTitle>{language.t("settings.section.desktop")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1.5 w-full">
                     <TabsV2.Trigger value="general">
-                      <Icon name="sliders" />
+                      <Icon name="sliders" size="small" />
                       {language.t("settings.tab.general")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="shortcuts">
-                      <Icon name="keyboard" />
+                      <Icon name="keyboard" size="small" />
                       {language.t("settings.tab.shortcuts")}
                     </TabsV2.Trigger>
                   </div>
@@ -70,19 +70,19 @@ export const DialogSettings: Component<{
                   <TabsV2.SectionTitle>{language.t("settings.section.server")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1.5 w-full">
                     <TabsV2.Trigger value="workspaces">
-                      <Icon name="workspace-isolated" />
+                      <Icon name="workspace-isolated" size="small" />
                       {language.t("settings.tab.workspaces")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="servers">
-                      <Icon name="server" />
+                      <Icon name="server" size="small" />
                       {language.t("status.popover.tab.servers")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="providers">
-                      <Icon name="providers" />
+                      <Icon name="providers" size="small" />
                       {language.t("settings.providers.title")}
                     </TabsV2.Trigger>
                     <TabsV2.Trigger value="models">
-                      <Icon name="models" />
+                      <Icon name="models" size="small" />
                       {language.t("settings.models.title")}
                     </TabsV2.Trigger>
                   </div>

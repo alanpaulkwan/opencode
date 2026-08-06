@@ -88,7 +88,10 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
     queryFn: () => loadSessions(),
     refetchOnMount: "always",
   }))
-  const workspaceSessions = (workspace: Workspace) => sessionsForWorkspace(sessionQuery.data ?? [], workspace.directory)
+  const workspaceSessions = (workspace: Workspace) => {
+    if (!sessionQuery.isSuccess) return []
+    return sessionsForWorkspace(sessionQuery.data ?? [], workspace.directory)
+  }
   const sessionCount = (workspace: Workspace) => {
     if (sessionQuery.isPending) return language.t("session.messages.loading")
     if (sessionQuery.isError) return language.t("common.requestFailed")

@@ -96,6 +96,22 @@ test("lists and manually deletes workspaces from settings", async ({ page }) => 
     sessions: [],
     pageMessages: () => ({ items: [] }),
   })
+  let releaseSessions = () => {}
+  const sessionsReady = new Promise<void>((resolve) => {
+    releaseSessions = resolve
+  })
+  await page.route("**/session?**", async (route) => {
+    const url = new URL(route.request().url())
+    if (route.request().method() !== "GET" || url.pathname !== "/session" || url.searchParams.get("limit") !== "1000")
+      return route.fallback()
+    await sessionsReady
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: "[]",
+    })
+  })
   await page.route("**/experimental/worktree**", async (route) => {
     if (route.request().method() === "OPTIONS") {
       await route.fulfill({
@@ -125,6 +141,9 @@ test("lists and manually deletes workspaces from settings", async ({ page }) => 
   await page.goto(`/new-session?draftId=${draftID}`)
   await transport.waitForConnection()
   await expectAppVisible(page.locator('[data-component="prompt-input"]'))
+
+  const app = page.locator('[data-component="session-new-design"]')
+  const appNode = await app.elementHandle()
   await page.getByRole("button", { name: /local|new workspace/i }).click()
   const workspacesTrigger = page.getByRole("menuitem", { name: /Workspace/ })
   if (await workspacesTrigger.isVisible()) await workspacesTrigger.hover()
@@ -132,6 +151,8 @@ test("lists and manually deletes workspaces from settings", async ({ page }) => 
 
   const settings = page.locator(".settings-v2-dialog")
   await expect(settings.getByRole("tab", { name: "Workspaces" })).toHaveAttribute("data-selected")
+  expect(await appNode?.evaluate((node) => node.isConnected)).toBe(true)
+  releaseSessions()
   await expect(settings.getByText(cleanWorkspace, { exact: true })).toBeVisible()
 
   await settings.getByRole("button", { name: 'Delete workspace "feature-clean"?' }).click()
