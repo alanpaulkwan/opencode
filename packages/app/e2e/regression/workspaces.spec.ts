@@ -163,6 +163,7 @@ test("lists and manually deletes workspaces from settings", async ({ page }) => 
     if (path === "/session" || path === "/api/session") sessionListRequests++
   })
 
+  const transport = await installSseTransport<{ directory: string; payload: Record<string, unknown> }>(page, { server })
   await mockOpenCodeServer(page, {
     directory: root,
     project: inventory,
@@ -181,6 +182,14 @@ test("lists and manually deletes workspaces from settings", async ({ page }) => 
     if (route.request().method() !== "DELETE") return route.fallback()
     const url = new URL(route.request().url())
     removal = { directory: url.searchParams.get("directory"), body: route.request().postDataJSON() }
+    await transport.send({
+      directory: "global",
+      payload: {
+        id: "evt_workspace_deleted_settings",
+        type: "project.updated",
+        properties: { ...inventory, sandboxes: [workspace] },
+      },
+    })
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -191,6 +200,7 @@ test("lists and manually deletes workspaces from settings", async ({ page }) => 
   await init(page, { type: "draft", draftID, directory: root })
 
   await page.goto(`/new-session?draftId=${draftID}`)
+  await transport.waitForConnection()
   await expectAppVisible(page.locator('[data-component="prompt-input"]'))
   await page.getByRole("button", { name: /local|new workspace/i }).click()
   const workspacesTrigger = page.getByRole("menuitem", { name: /Workspace/ })
