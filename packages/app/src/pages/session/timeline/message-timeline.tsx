@@ -269,7 +269,7 @@ function WorkspaceMoveAction(props: {
       classList={{
         "group/workspace-move relative shrink-0": true,
         "ml-auto h-5 w-[167px]": inline(),
-        "-mt-2.5 h-[46px] w-full rounded-b-[6px] bg-v2-background-bg-layer-02 hover:bg-v2-background-bg-layer-03":
+        "-mt-2.5 h-[46px] w-full rounded-b-[6px] bg-v2-background-bg-layer-02 hover:bg-v2-background-bg-layer-03 transition-colors":
           !inline(),
         invisible: props.dismissed,
       }}
@@ -286,10 +286,10 @@ function WorkspaceMoveAction(props: {
         class={
           inline()
             ? "flex h-5 w-full items-center gap-1.5 rounded-[4px] pr-6 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-faint hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed"
-            : "flex h-[46px] w-full items-center gap-1.5 rounded-b-[6px] px-3 pr-9 pt-[10px] text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-muted focus-visible:outline-none data-[expanded]:bg-v2-background-bg-layer-03"
+            : "flex h-[46px] w-full items-center gap-2 rounded-b-[6px] px-3 pr-9 pt-2.5 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-muted focus-visible:outline-none"
         }
       >
-        <IconV2 name={inline() ? "workspace-new" : "workspace"} class="shrink-0 text-v2-icon-icon-muted" />
+        <IconV2 name={inline() ? "workspace-new" : "workspace-new"} class="shrink-0 text-v2-icon-icon-muted" />
         <span class="min-w-0 truncate">{language.t("workspace.move.title")}</span>
       </SessionWorkspaceMenu>
       <button
@@ -343,31 +343,21 @@ function SessionSummaryPanel(props: {
             src={getProjectAvatarSource(props.project.id, props.project.icon)}
             variant={getProjectAvatarVariant(props.project.icon?.color)}
           />
-          <span class="min-w-0 flex-1 truncate">{displayName(props.project)}</span>
+          <span class="min-w-0 flex-1 truncate text-v2-text-text-muted">{displayName(props.project)}</span>
         </div>
-        <Show
-          when={props.local}
-          fallback={
-            <div class={row}>
-              <IconV2 name="workspace-isolated" class="shrink-0 text-v2-icon-icon-muted" />
-              <span class="min-w-0 flex-1 truncate">{location()}</span>
-            </div>
-          }
+        <SessionWorkspaceMenu
+          sessionID={props.sessionID}
+          project={props.project}
+          directory={props.directory}
+          messageID={props.messageID}
+          placement="left-start"
+          gutter={-22}
+          class={`${row} hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed`}
         >
-          <SessionWorkspaceMenu
-            sessionID={props.sessionID}
-            project={props.project}
-            directory={props.directory}
-            messageID={props.messageID}
-            placement="left-start"
-            gutter={-22}
-            class={`${row} hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none data-[expanded]:bg-v2-overlay-simple-overlay-pressed`}
-          >
-            <IconV2 name="monitor" class="shrink-0 text-v2-icon-icon-muted" />
-            <span class="min-w-0 flex-1 truncate text-left">{location()}</span>
-            <IconV2 name="chevron-down" size="small" class="shrink-0 text-v2-icon-icon-muted" />
-          </SessionWorkspaceMenu>
-        </Show>
+          <IconV2 name={props.local ? "monitor" : "workspace-isolated"} class="shrink-0 text-v2-icon-icon-muted" />
+          <span class="min-w-0 flex-1 truncate text-left">{location()}</span>
+          <IconV2 name="chevron-down" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+        </SessionWorkspaceMenu>
         <div class={row}>
           <IconV2 name="branch" class="shrink-0 text-v2-icon-icon-muted" />
           <Show
@@ -1453,27 +1443,33 @@ export function MessageTimeline(props: {
         return (
           <TimelineRowFrame row={workspaceRow}>
             <div class={`w-full ${turnPadding()}`} aria-live="polite">
-              <div class="flex h-11 w-full items-center gap-2 text-[13px] font-[440] leading-5 tracking-[-0.04px]">
-                <span class="h-px min-w-0 flex-1 bg-v2-border-border-muted" />
-                <Show when={!pending()} fallback={<TextShimmer text={status()} />}>
-                  <span
+              <div class="flex h-7 items-center py-1 text-[13px] font-[440] leading-none tracking-[-0.04px]">
+                <Show
+                  when={!pending()}
+                  fallback={
+                    <div class="flex items-center gap-1.5">
+                      <TextShimmer text={status()} />
+                    </div>
+                  }
+                >
+                  <div
                     classList={{
-                      "flex min-w-0 items-center gap-1.5": true,
+                      "flex items-center gap-1.5": true,
                       "text-v2-state-fg-danger": operation().status === "failed",
                     }}
                   >
-                    <Show when={operation().status !== "failed"}>
-                      <IconV2 name="workspace-isolated" class="shrink-0 text-v2-icon-icon-muted" />
-                    </Show>
-                    <Show when={directory()}>
-                      <span class="max-w-[240px] truncate text-v2-text-text-base">{directory()}</span>
-                    </Show>
-                    <span class={operation().status === "failed" ? "" : "text-v2-text-text-faint lowercase"}>
+                    <span class={operation().status === "failed" ? "" : "text-v2-text-text-base"}>
                       {status()}
                     </span>
-                  </span>
+                    <Show when={operation().status !== "failed"}>
+                      <span class="text-[11px] font-[530] italic text-v2-text-text-muted">·</span>
+                      <IconV2 name="workspace-isolated" class="shrink-0 text-v2-icon-icon-muted" />
+                      <Show when={directory()}>
+                        <span class="max-w-[240px] truncate text-v2-text-text-base">{directory()}</span>
+                      </Show>
+                    </Show>
+                  </div>
                 </Show>
-                <span class="h-px min-w-0 flex-1 bg-v2-border-border-muted" />
               </div>
             </div>
           </TimelineRowFrame>

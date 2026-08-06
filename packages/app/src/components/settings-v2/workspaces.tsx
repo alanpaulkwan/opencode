@@ -107,6 +107,10 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
     if (!updated) return undefined
     return getRelativeTime(new Date(updated).toISOString(), language.t)
   }
+  const sessionTime = (session: Session) => {
+    if (!session.time.updated) return undefined
+    return getRelativeTime(new Date(session.time.updated).toISOString(), language.t)
+  }
 
   const inspect = async (workspace: Workspace, context = captureDeleteContext()) => {
     const [status, sessions] = await Promise.all([
@@ -331,22 +335,29 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
                             </span>
                           </TooltipV2>
                           <Show when={lastActive(workspace)}>
-                            {(value) => <span class="settings-v2-workspaces-active">{value()}</span>}
+                            {(value) => (
+                              <TooltipV2
+                                value={language.t("settings.workspaces.lastActiveSession")}
+                                placement="top-end"
+                              >
+                                <span tabIndex={0} class="settings-v2-workspaces-active">
+                                  {value()}
+                                </span>
+                              </TooltipV2>
+                            )}
                           </Show>
                         </div>
                         <span class="settings-v2-workspaces-meta">{sessionCount(workspace)}</span>
                         <Show when={linked().length > 0}>
                           <div class="settings-v2-workspaces-sessions">
                             <For each={linked()}>
-                              {(session, index) => (
-                                <span class="settings-v2-workspaces-session">
+                              {(session) => (
+                                <div class="settings-v2-workspaces-session">
                                   <span>{session.title}</span>
-                                  <Show when={index() === 0}>
-                                    <span class="settings-v2-workspaces-session-active">
-                                      {language.t("settings.workspaces.lastActiveSession")}
-                                    </span>
+                                  <Show when={sessionTime(session)}>
+                                    {(time) => <span class="settings-v2-workspaces-session-time">{time()}</span>}
                                   </Show>
-                                </span>
+                                </div>
                               )}
                             </For>
                           </div>

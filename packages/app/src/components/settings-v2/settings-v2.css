@@ -784,8 +784,11 @@
 .settings-v2-workspaces-sessions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 4px;
+  border: 0.5px solid var(--v2-border-border-base);
+  border-radius: 4px;
+  background-color: var(--v2-background-bg-base);
+  overflow: hidden;
+  margin-top: 4px;
 }
 
 .settings-v2-workspaces-session {
@@ -794,26 +797,29 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  overflow: hidden;
+  padding: 8px 12px;
   font-size: 13px;
   font-weight: 440;
   line-height: 16px;
   color: var(--v2-text-text-base);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.settings-v2-workspaces-session:not(:last-child) {
+  border-bottom: 0.5px solid var(--v2-border-border-base);
 }
 
 .settings-v2-workspaces-session > span:first-child {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.settings-v2-workspaces-session-active {
+.settings-v2-workspaces-session-time {
   flex-shrink: 0;
-  color: var(--v2-text-text-muted);
   font-size: 11px;
-  line-height: 14px;
+  line-height: 1;
+  color: var(--v2-text-text-muted);
 }
 
 .settings-v2-workspaces-empty {

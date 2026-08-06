@@ -104,7 +104,9 @@ test("selects local, new, and existing workspaces from the ready-ish start menu"
   await trigger.click()
   const newWorkspace = page.getByRole("menuitem", { name: /New workspace/ })
   await expect(newWorkspace).toBeVisible()
-  await expect(page.getByRole("menuitem", { name: /Workspace/ })).toBeVisible()
+  const workspaceTrigger = page.getByRole("menuitem", { name: /Workspace/ })
+  await expect(workspaceTrigger).toBeVisible()
+  await workspaceTrigger.hover()
   await expect(page.getByRole("menuitem", { name: "View all" })).toBeVisible()
 
   await newWorkspace.click()
@@ -133,7 +135,7 @@ test("searches long workspace lists within the available viewport", async ({ pag
 
   await page.goto(`/new-session?draftId=${draftID}`)
   await expectAppVisible(page.locator('[data-component="prompt-input"]'))
-  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("button", { name: /local|new workspace/i }).click()
   await page.getByRole("menuitem", { name: /Workspace/ }).focus()
   await page.keyboard.press("ArrowRight")
 
@@ -203,7 +205,9 @@ test("lists and manually deletes workspaces from settings", async ({ page }) => 
 
   await page.goto(`/new-session?draftId=${draftID}`)
   await expectAppVisible(page.locator('[data-component="prompt-input"]'))
-  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("button", { name: /local|new workspace/i }).click()
+  const workspacesTrigger = page.getByRole("menuitem", { name: /Workspace/ })
+  if (await workspacesTrigger.isVisible()) await workspacesTrigger.hover()
   await page.getByRole("menuitem", { name: "View all" }).click()
 
   const settings = page.locator(".settings-v2-dialog")
@@ -215,7 +219,8 @@ test("lists and manually deletes workspaces from settings", async ({ page }) => 
   const firstSessionInventory = sessionListRequests
   await page.keyboard.press("Escape")
   await expect(settings).toHaveCount(0)
-  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("button", { name: /local|new workspace/i }).click()
+  if (await workspacesTrigger.isVisible()) await workspacesTrigger.hover()
   await page.getByRole("menuitem", { name: "View all" }).click()
   await expect(settings.getByText("Workspace settings session", { exact: true })).toBeVisible()
   expect(sessionListRequests).toBeGreaterThan(firstSessionInventory)
@@ -273,6 +278,8 @@ test("blocks deletion of the currently active workspace", async ({ page }) => {
 
   await page.goto(`/new-session?draftId=${draftID}`)
   await page.getByRole("button", { name: /feature/ }).click()
+  const workspacesTrigger = page.getByRole("menuitem", { name: /Workspace/ })
+  if (await workspacesTrigger.isVisible()) await workspacesTrigger.hover()
   await page.getByRole("menuitem", { name: "View all" }).click()
   const settings = page.locator(".settings-v2-dialog")
   await settings.getByRole("button", { name: 'Delete workspace "feature"?' }).click()
@@ -313,7 +320,9 @@ test("wraps the workspace toolbar for long project filters on mobile", async ({ 
   await page.goto(`/new-session?draftId=${draftID}`)
   const dismissTabs = page.getByRole("button", { name: "Dismiss Tabs information" })
   if (await dismissTabs.isVisible()) await dismissTabs.click()
-  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("button", { name: /local|new workspace/i }).click()
+  const workspacesTrigger = page.getByRole("menuitem", { name: /Workspace/ })
+  if (await workspacesTrigger.isVisible()) await workspacesTrigger.hover()
   await page.getByRole("menuitem", { name: "View all" }).click()
   const settings = page.locator(".settings-v2-dialog")
   await expect(settings.getByRole("button", { name: "All projects" })).toBeVisible()
@@ -389,7 +398,9 @@ test("bulk deletion snapshots inventory and skips dirty or unknown workspaces", 
 
   await page.goto(`/new-session?draftId=${draftID}`)
   await transport.waitForConnection()
-  await page.getByRole("button", { name: /^local$/i }).click()
+  await page.getByRole("button", { name: /local|new workspace/i }).click()
+  const workspacesTrigger = page.getByRole("menuitem", { name: /Workspace/ })
+  if (await workspacesTrigger.isVisible()) await workspacesTrigger.hover()
   await page.getByRole("menuitem", { name: "View all" }).click()
   const settings = page.locator(".settings-v2-dialog")
   await settings.getByRole("button", { name: "More options" }).click()

@@ -7,6 +7,7 @@ import { For, Show, type ComponentProps, type JSX } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServerSDK } from "@/context/server-sdk"
 import { useServerSync } from "@/context/server-sync"
+import { useSettingsDialog } from "@/components/settings-dialog"
 import { pathKey } from "@/utils/path-key"
 import { Worktree } from "@/utils/worktree"
 import { WorkspaceOperation } from "@/utils/workspace-operation"
@@ -35,6 +36,7 @@ export function SessionWorkspaceMenu(props: {
   const language = useLanguage()
   const serverSDK = useServerSDK()
   const serverSync = useServerSync()
+  const openWorkspaces = useSettingsDialog("workspaces")
   const [store, setStore] = createStore({ selected: undefined as string | undefined })
   const operationPending = () => WorkspaceOperation.get(serverSDK().scope, props.sessionID)?.status === "pending"
   const blocked = () =>
@@ -126,28 +128,31 @@ export function SessionWorkspaceMenu(props: {
               <Icon name="workspace-new" />
               {language.t("workspace.new")}
             </MenuV2.Item>
+            <Show when={workspaces().length > 0}>
+              <MenuV2.Sub gutter={0} overlap overflowPadding={8}>
+                <MenuV2.SubTrigger>
+                  <Icon name="workspace-isolated" />
+                  {language.t("session.new.workspace.existing").replace(/…$/, "")}
+                </MenuV2.SubTrigger>
+                <MenuV2.Portal>
+                  <MenuV2.SubContent class="w-[200px]">
+                    <For each={workspaces()}>
+                      {(workspace) => (
+                        <MenuV2.Item disabled={!!store.selected || blocked()} onSelect={() => void move(workspace)}>
+                          <Icon name="workspace-isolated" />
+                          <span class="min-w-0 flex-1 truncate">{getFilename(workspace)}</span>
+                        </MenuV2.Item>
+                      )}
+                    </For>
+                  </MenuV2.SubContent>
+                </MenuV2.Portal>
+              </MenuV2.Sub>
+            </Show>
           </MenuV2.Group>
-          <Show when={workspaces().length > 0}>
-            <MenuV2.Separator class="h-[0.5px] bg-v2-border-border-base" />
-            <MenuV2.Sub gutter={0} overlap overflowPadding={8}>
-              <MenuV2.SubTrigger>
-                <Icon name="workspace-isolated" />
-                {language.t("session.new.workspace.existing").replace(/…$/, "")}
-              </MenuV2.SubTrigger>
-              <MenuV2.Portal>
-                <MenuV2.SubContent class="w-[200px]">
-                  <For each={workspaces()}>
-                    {(workspace) => (
-                      <MenuV2.Item disabled={!!store.selected || blocked()} onSelect={() => void move(workspace)}>
-                        <Icon name="workspace-isolated" />
-                        <span class="min-w-0 flex-1 truncate">{getFilename(workspace)}</span>
-                      </MenuV2.Item>
-                    )}
-                  </For>
-                </MenuV2.SubContent>
-              </MenuV2.Portal>
-            </MenuV2.Sub>
-          </Show>
+          <MenuV2.Separator class="h-[0.5px] bg-v2-border-border-base" />
+          <MenuV2.Item onSelect={() => openWorkspaces()}>
+            <span class="min-w-0 flex-1 truncate">{language.t("common.viewAll")}</span>
+          </MenuV2.Item>
         </MenuV2.Content>
       </MenuV2.Portal>
     </MenuV2>
