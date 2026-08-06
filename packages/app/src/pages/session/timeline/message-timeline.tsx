@@ -511,7 +511,7 @@ export function MessageTimeline(props: {
       setWorkspaceSuggestionDismissed(false)
     }),
   )
-  const turnPadding = () => (settings.general.newLayoutDesigns() ? "px-3" : "px-4 md:px-5")
+  const turnPadding = () => "px-4 md:px-5"
   const workspaceOperation = createMemo(() => {
     const id = sessionID()
     if (!id) return
