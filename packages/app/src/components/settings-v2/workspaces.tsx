@@ -304,17 +304,22 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
                   const linked = () => workspaceSessions(workspace)
                   return (
                     <div class="settings-v2-workspaces-row">
-                      <div class="settings-v2-workspaces-copy">
-                        <div class="settings-v2-workspaces-main">
-                          <TooltipV2
-                            value={workspace.directory}
-                            placement="top-start"
-                            contentClass="max-w-[calc(100vw-32px)] break-all"
-                          >
-                            <span tabIndex={0} aria-label={workspace.directory} class="settings-v2-workspaces-path">
-                              {workspace.directory}
-                            </span>
-                          </TooltipV2>
+                      <div class="settings-v2-workspaces-row-header">
+                        <div class="settings-v2-workspaces-copy">
+                          <div class="settings-v2-workspaces-main">
+                            <TooltipV2
+                              value={workspace.directory}
+                              placement="top-start"
+                              contentClass="max-w-[calc(100vw-32px)] break-all"
+                            >
+                              <span tabIndex={0} aria-label={workspace.directory} class="settings-v2-workspaces-path">
+                                {workspace.directory}
+                              </span>
+                            </TooltipV2>
+                          </div>
+                          <span class="settings-v2-workspaces-meta">{sessionCount(workspace)}</span>
+                        </div>
+                        <div class="settings-v2-workspaces-row-actions">
                           <Show when={lastActive(workspace)}>
                             {(value) => (
                               <TooltipV2
@@ -327,32 +332,33 @@ export const SettingsWorkspacesV2: Component<{ activeDirectory?: string }> = (pr
                               </TooltipV2>
                             )}
                           </Show>
+                          <IconButtonV2
+                            type="button"
+                            variant="ghost-muted"
+                            size="small"
+                            aria-label={language.t("workspace.delete.confirm", {
+                              name: getFilename(workspace.directory),
+                            })}
+                            disabled={!!store.transaction}
+                            icon={<Icon name="trash" size="small" />}
+                            onClick={() => confirmDelete(workspace)}
+                          />
                         </div>
-                        <span class="settings-v2-workspaces-meta">{sessionCount(workspace)}</span>
-                        <Show when={linked().length > 0}>
-                          <div class="settings-v2-workspaces-sessions">
-                            <For each={linked()}>
-                              {(session) => (
-                                <div class="settings-v2-workspaces-session">
-                                  <span>{session.title}</span>
-                                  <Show when={sessionTime(session)}>
-                                    {(time) => <span class="settings-v2-workspaces-session-time">{time()}</span>}
-                                  </Show>
-                                </div>
-                              )}
-                            </For>
-                          </div>
-                        </Show>
                       </div>
-                      <IconButtonV2
-                        type="button"
-                        variant="ghost-muted"
-                        size="small"
-                        aria-label={language.t("workspace.delete.confirm", { name: getFilename(workspace.directory) })}
-                        disabled={!!store.transaction}
-                        icon={<Icon name="trash" size="small" />}
-                        onClick={() => confirmDelete(workspace)}
-                      />
+                      <Show when={linked().length > 0}>
+                        <div class="settings-v2-workspaces-sessions">
+                          <For each={linked()}>
+                            {(session) => (
+                              <div class="settings-v2-workspaces-session">
+                                <span>{session.title}</span>
+                                <Show when={sessionTime(session)}>
+                                  {(time) => <span class="settings-v2-workspaces-session-time">{time()}</span>}
+                                </Show>
+                              </div>
+                            )}
+                          </For>
+                        </div>
+                      </Show>
                     </div>
                   )
                 }}

@@ -688,12 +688,15 @@
   padding-bottom: 24px;
 }
 
-.settings-v2-tab-body.settings-v2-workspaces {
-  gap: 32px;
+.settings-v2-workspaces-header .settings-v2-tab-title {
+  font-weight: 610;
 }
 
-.settings-v2-workspaces-toolbar,
-.settings-v2-workspaces-main {
+.settings-v2-tab-body.settings-v2-workspaces {
+  gap: 16px;
+}
+
+.settings-v2-workspaces-toolbar {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -702,7 +705,7 @@
 }
 
 .settings-v2-workspaces-count {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 530;
   line-height: 1;
   color: var(--v2-text-text-base);
@@ -724,20 +727,29 @@
   gap: 0;
   padding: 20px;
   border-radius: 6px;
+  background-color: var(--v2-background-bg-base);
+  box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
 }
 
 .settings-v2-workspaces-row {
   display: flex;
   min-width: 0;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .settings-v2-workspaces-row:not(:last-child) {
-  padding-bottom: 16px;
-  margin-bottom: 16px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
   border-bottom: 0.5px solid var(--v2-border-border-base);
+}
+
+.settings-v2-workspaces-row-header {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
 }
 
 .settings-v2-workspaces-copy {
@@ -745,7 +757,20 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+
+.settings-v2-workspaces-main {
+  display: flex;
+  min-width: 0;
+}
+
+.settings-v2-workspaces-row-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .settings-v2-workspaces-main [data-component="tooltip-v2-trigger"] {
@@ -757,10 +782,11 @@
   min-width: 0;
   overflow: hidden;
   color: var(--v2-text-text-base);
-  font-family: var(--font-family-mono);
-  font-size: 12px;
-  font-weight: 440;
-  line-height: 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 530;
+  line-height: 1;
+  letter-spacing: -0.04px;
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0;
@@ -768,17 +794,20 @@
   cursor: default;
 }
 
-.settings-v2-workspaces-meta,
+.settings-v2-workspaces-meta {
+  font-size: 13px;
+  font-weight: 440;
+  line-height: 1;
+  color: var(--v2-text-text-faint);
+}
+
 .settings-v2-workspaces-active,
 .settings-v2-workspaces-more {
+  flex-shrink: 0;
   font-size: 11px;
   font-weight: 440;
   line-height: 1;
-  color: var(--v2-text-text-muted);
-}
-
-.settings-v2-workspaces-active {
-  flex-shrink: 0;
+  color: var(--v2-text-text-faint);
 }
 
 .settings-v2-workspaces-sessions {
@@ -788,7 +817,6 @@
   border-radius: 4px;
   background-color: var(--v2-background-bg-base);
   overflow: hidden;
-  margin-top: 4px;
 }
 
 .settings-v2-workspaces-session {
@@ -797,7 +825,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 10px 12px;
   font-size: 13px;
   font-weight: 440;
   line-height: 16px;

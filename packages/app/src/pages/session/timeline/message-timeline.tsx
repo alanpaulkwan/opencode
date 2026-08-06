@@ -1471,7 +1471,7 @@ export function MessageTimeline(props: {
                     <span class={operation().status === "failed" ? "" : "text-v2-text-text-base"}>{status()}</span>
                     <Show when={operation().status !== "failed"}>
                       <span class="text-[11px] font-[530] italic text-v2-text-text-muted">·</span>
-                      <IconV2 name="workspace-isolated" class="shrink-0 text-v2-icon-icon-muted" />
+                      <IconV2 name="workspace-isolated" class="shrink-0 text-v2-icon-icon-accent" />
                       <Show when={directory()}>
                         <span class="max-w-[240px] truncate text-v2-text-text-base">{directory()}</span>
                       </Show>
@@ -1778,7 +1778,7 @@ export function MessageTimeline(props: {
                           <span
                             tabIndex={0}
                             aria-label={sessionDirectory()}
-                            class="flex size-6 shrink-0 items-center justify-center text-v2-icon-icon-muted"
+                            class="flex size-6 shrink-0 items-center justify-center text-v2-icon-icon-accent"
                           >
                             <IconV2 name="workspace-isolated" />
                           </span>
