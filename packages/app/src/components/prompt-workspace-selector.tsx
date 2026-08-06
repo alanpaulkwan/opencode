@@ -49,7 +49,7 @@ export function PromptWorkspaceSelector(props: {
     props.onDone()
   }
   const label = () => {
-    if (selected() === "main") return language.t("workspace.type.local")
+    if (selected() === "main") return language.t("session.new.workspace.triggerLocal")
     if (props.value === "create") return language.t("workspace.new")
     return getFilename(props.value)
   }
@@ -180,7 +180,7 @@ export function PromptWorkspaceSelector(props: {
                   >
                     <Icon name="workspace-isolated" />
                     <span class="min-w-0 flex-1 truncate">
-                      {language.t("session.new.workspace.existing").replace(/…$/, "")}
+                      {language.t("session.new.workspace.existing").replace(/(…|\.{3})$/, "")}
                     </span>
                   </MenuV2.SubTrigger>
                   <MenuV2.Portal>

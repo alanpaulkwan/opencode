@@ -364,10 +364,16 @@ function SessionSummaryPanel(props: {
             when={props.branch}
             fallback={
               <span class="flex min-w-0 items-center gap-1.5">
-                <span>No branch</span>
+                <span>{language.t("session.summary.noBranch")}</span>
                 <Show when={props.baseBranch}>
-                  <span class="text-v2-text-text-muted">·</span>
-                  <span class="truncate text-v2-text-text-faint">Based on {props.baseBranch}</span>
+                  {(base) => (
+                    <>
+                      <span class="text-v2-text-text-muted">·</span>
+                      <span class="truncate text-v2-text-text-faint">
+                        {language.t("session.summary.basedOn", { branch: base() })}
+                      </span>
+                    </>
+                  )}
                 </Show>
               </span>
             }
@@ -1893,7 +1899,7 @@ export function MessageTimeline(props: {
                             variant="ghost-muted"
                             size="large"
                             state={summaryOpen() ? "pressed" : undefined}
-                            aria-label="Session details"
+                            aria-label={language.t("session.summary.title")}
                             aria-expanded={summaryOpen()}
                           />
                           <KobaltePopover.Portal>

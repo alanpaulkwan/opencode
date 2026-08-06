@@ -124,6 +124,12 @@ export function SessionWorkspaceMenu(props: {
         <MenuV2.Content class={`w-[200px] ${props.contentClass ?? ""}`}>
           <MenuV2.Group>
             <MenuV2.GroupLabel>{language.t("workspace.move.menu.title")}</MenuV2.GroupLabel>
+            <Show when={pathKey(props.directory) !== pathKey(props.project.worktree)}>
+              <MenuV2.Item disabled={!!store.selected || blocked()} onSelect={() => void move(props.project.worktree)}>
+                <Icon name="monitor" />
+                {language.t("session.new.workspace.local")}
+              </MenuV2.Item>
+            </Show>
             <MenuV2.Item disabled={!!store.selected || blocked()} onSelect={() => void move("create")}>
               <Icon name="workspace-new" />
               {language.t("workspace.new")}
@@ -132,7 +138,7 @@ export function SessionWorkspaceMenu(props: {
               <MenuV2.Sub gutter={0} overlap overflowPadding={8}>
                 <MenuV2.SubTrigger>
                   <Icon name="workspace-isolated" />
-                  {language.t("session.new.workspace.existing").replace(/…$/, "")}
+                  {language.t("session.new.workspace.existing").replace(/(…|\.{3})$/, "")}
                 </MenuV2.SubTrigger>
                 <MenuV2.Portal>
                   <MenuV2.SubContent class="w-[200px]">
