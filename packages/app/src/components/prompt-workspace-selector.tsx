@@ -233,12 +233,12 @@ export function PromptWorkspaceSelector(props: {
           </MenuV2.Portal>
         </MenuV2>
       </TooltipV2>
-      <PromptGitStatus branch={props.branch} from={selected() === "create"} />
+      <PromptGitStatus branch={props.branch} from={selected() === "create"} class="ml-1" />
     </>
   )
 }
 
-export function PromptGitStatus(props: { branch?: string; noGit?: boolean; from?: boolean }) {
+export function PromptGitStatus(props: { branch?: string; noGit?: boolean; from?: boolean; class?: string }) {
   const language = useLanguage()
   const label = () => {
     if (props.noGit) return language.t("session.new.git.none")
@@ -259,7 +259,7 @@ export function PromptGitStatus(props: { branch?: string; noGit?: boolean; from?
         <TooltipV2
           placement="top"
           value={value()}
-          class="min-w-0 max-w-[220px]"
+          class={`min-w-0 max-w-[220px] ${props.class ?? ""}`}
           contentClass="max-w-[calc(100vw-32px)] break-all"
         >
           <div class="flex h-6 min-w-0 max-w-[220px] items-center gap-1.5 rounded-full bg-v2-background-bg-layer-02 px-2.5 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-faint">
