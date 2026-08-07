@@ -61,8 +61,8 @@ function useServerMutations() {
 
   return {
     add: (connection: ServerConnection.Http) => server.add(connection),
-    replace: (original: ServerConnection.Http, next: ServerConnection.Http) =>
-      replaceServerConnection(original, next, {
+    replace: (originalKey: ServerConnection.Key, next: ServerConnection.Http) =>
+      replaceServerConnection(originalKey, next, {
         active: () => server.key,
         removeTabs: (key) => tabs.removeServer(key),
         add: (connection) => server.add(connection),
@@ -240,7 +240,7 @@ export function useServerFormController(options: { onSelect?: () => void; naviga
       }
       if (original?.type === "http") {
         if (normalized === original.http.url) mutations.add(connection)
-        if (normalized !== original.http.url) mutations.replace(original, connection)
+        if (normalized !== original.http.url) mutations.replace(ServerConnection.key(original), connection)
         reset()
         return
       }

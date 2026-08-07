@@ -64,7 +64,7 @@ describe("replaceServerConnection", () => {
   test("moves active selection after adding the replacement and removes the original", () => {
     const calls: string[] = []
 
-    replaceServerConnection(original, next, {
+    replaceServerConnection(ServerConnection.key(original), next, {
       active: () => ServerConnection.key(original),
       removeTabs: (key) => calls.push(`tabs:${key}`),
       add: (server) => {
@@ -86,7 +86,7 @@ describe("replaceServerConnection", () => {
   test("keeps the original when the replacement cannot be added", () => {
     const removed: ServerConnection.Key[] = []
 
-    replaceServerConnection(original, next, {
+    replaceServerConnection(ServerConnection.key(original), next, {
       active: () => ServerConnection.key(original),
       removeTabs: () => {},
       add: () => undefined,

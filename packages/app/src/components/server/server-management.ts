@@ -39,7 +39,7 @@ export function createServerHealthPreview(
 }
 
 export function replaceServerConnection(
-  original: ServerConnection.Http,
+  originalKey: ServerConnection.Key,
   next: ServerConnection.Http,
   operations: {
     active: () => ServerConnection.Key | undefined
@@ -49,7 +49,6 @@ export function replaceServerConnection(
     remove: (key: ServerConnection.Key) => void
   },
 ) {
-  const originalKey = ServerConnection.key(original)
   const active = operations.active()
   operations.removeTabs(originalKey)
   const added = operations.add(next)
