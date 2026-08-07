@@ -715,7 +715,7 @@ const Endpoint10_3 = (raw: RawClient["server.integration"]) => (input: Endpoint1
     raw["integration.connect.key"]({
       params: { integrationID: input["integrationID"] },
       query: { location: input["location"] },
-      payload: { key: input["key"], label: input["label"] },
+      payload: { key: input["key"], answers: input["answers"], label: input["label"] },
     }).pipe(Effect.mapError(mapClientError)),
   )
 
@@ -724,7 +724,7 @@ const Endpoint10_4 = (raw: RawClient["server.integration"]) => (input: Endpoint1
     raw["integration.oauth.connect"]({
       params: { integrationID: input["integrationID"] },
       query: { location: input["location"] },
-      payload: { methodID: input["methodID"], inputs: input["inputs"], label: input["label"] },
+      payload: { methodID: input["methodID"], answers: input["answers"], label: input["label"] },
     }).pipe(Effect.mapError(mapClientError)),
   )
 
