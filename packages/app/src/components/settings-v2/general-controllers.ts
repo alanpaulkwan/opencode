@@ -1,4 +1,4 @@
-import { createMemo, onCleanup, onMount, type Accessor } from "solid-js"
+import { createMemo, createResource, onCleanup, onMount, type Accessor } from "solid-js"
 import type { ColorScheme } from "@opencode-ai/ui/theme/context"
 import { useTheme } from "@opencode-ai/ui/theme/context"
 import {
@@ -14,6 +14,57 @@ import {
   useSettings,
 } from "@/context/settings"
 import { playSoundById, SOUND_OPTIONS } from "@/utils/sound"
+import { useServerSync } from "@/context/server-sync"
+
+type ShellOption = {
+  path: string
+  name: string
+  acceptable: boolean
+}
+
+type ShellSelectOption = {
+  id: string
+  value: string
+  name: string
+  terminalOnly: boolean
+}
+
+export function createShellOptions(input: { shells: ShellOption[]; current: string | undefined }) {
+  const counts = input.shells.reduce((result, shell) => {
+    result.set(shell.name, (result.get(shell.name) ?? 0) + 1)
+    return result
+  }, new Map<string, number>())
+  const options: ShellSelectOption[] = [
+    { id: "auto", value: "", name: "", terminalOnly: false },
+    ...input.shells.map((shell) => {
+      const ambiguous = (counts.get(shell.name) ?? 0) > 1
+      return {
+        id: shell.path,
+        value: ambiguous ? shell.path : shell.name,
+        name: ambiguous ? shell.path : shell.name,
+        terminalOnly: !shell.acceptable,
+      }
+    }),
+  ]
+  if (input.current && !options.some((option) => option.value === input.current)) {
+    options.push({ id: input.current, value: input.current, name: input.current, terminalOnly: false })
+  }
+  return options
+}
+
+export function createShellSettingsController() {
+  const serverSync = useServerSync()
+  const [shells] = createResource(async () => [] as ShellOption[], { initialValue: [] as ShellOption[] })
+  const current = createMemo(() => serverSync().data.config.shell ?? "")
+  return {
+    shells: () => shells.latest,
+    current,
+    select: (value: string) => {
+      if (value === current()) return
+      void serverSync().updateConfig({ shell: value })
+    },
+  }
+}
 
 export function createAppearanceSettingsController() {
   const settings = useSettings()
@@ -86,19 +137,33 @@ export function createSoundSettingsController() {
     },
   })
   return {
-    agent: channel(settings.sounds.agentEnabled, settings.sounds.agent, settings.sounds.setAgentEnabled, settings.sounds.setAgent),
+    agent: channel(
+      settings.sounds.agentEnabled,
+      settings.sounds.agent,
+      settings.sounds.setAgentEnabled,
+      settings.sounds.setAgent,
+    ),
     permissions: channel(
       settings.sounds.permissionsEnabled,
       settings.sounds.permissions,
       settings.sounds.setPermissionsEnabled,
       settings.sounds.setPermissions,
     ),
-    errors: channel(settings.sounds.errorsEnabled, settings.sounds.errors, settings.sounds.setErrorsEnabled, settings.sounds.setErrors),
+    errors: channel(
+      settings.sounds.errorsEnabled,
+      settings.sounds.errors,
+      settings.sounds.setErrorsEnabled,
+      settings.sounds.setErrors,
+    ),
   }
 }
 
 function soundPreview() {
-  const state = { cleanup: undefined as (() => void) | undefined, timeout: undefined as NodeJS.Timeout | undefined, run: 0 }
+  const state = {
+    cleanup: undefined as (() => void) | undefined,
+    timeout: undefined as NodeJS.Timeout | undefined,
+    run: 0,
+  }
   const stop = () => {
     state.run += 1
     state.cleanup?.()
