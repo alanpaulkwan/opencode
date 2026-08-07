@@ -66,8 +66,13 @@ export const SettingsServersV2: Component = () => {
     dialog.push(() => <DialogServerV2 mode="add" />)
   }
 
-  const openEdit = (server: ServerConnection.Http) => {
+  const openEdit = (server: ServerConnection.Any) => {
     dialog.push(() => <DialogServerV2 mode="edit" server={server} />)
+  }
+
+  const openWslEdit = (key: ServerConnection.Key) => {
+    const item = server.list.find((candidate) => ServerConnection.key(candidate) === key)
+    if (item) openEdit(item)
   }
 
   return (
@@ -77,7 +82,10 @@ export const SettingsServersV2: Component = () => {
         classList={{ "settings-v2-tab-header--stacked": showSearch() }}
       >
         <div class="settings-v2-tab-header-row">
-          <h2 class="settings-v2-tab-title">{language.t("status.popover.tab.servers")}</h2>
+          <div class="flex flex-col gap-1">
+            <h2 class="settings-v2-tab-title">{language.t("status.popover.tab.servers")}</h2>
+            <span class="text-11-regular text-v2-text-text-muted">{language.t("settings.servers.description")}</span>
+          </div>
           <AddServerMenu onAddServer={openAdd} />
         </div>
         <Show when={showSearch()}>
@@ -154,7 +162,7 @@ export const SettingsServersV2: Component = () => {
                 )
               }}
             </For>
-            <WslServerSettings controller={controller} servers={wslServers} />
+            <WslServerSettings controller={controller} servers={wslServers} onEdit={openWslEdit} />
           </SettingsListV2>
         </Show>
       </div>
