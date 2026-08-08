@@ -97,7 +97,7 @@ export const SettingsServersV2: Component = () => {
           }
         >
           <SettingsListV2>
-            <WslServerSettings controller={controller} servers={wslServers} />
+            <WslServerSettings controller={controller} servers={wslServers} onEdit={() => {}} />
             <For each={filtered()}>
               {(item) => {
                 const key = ServerConnection.key(item)
