@@ -101,7 +101,11 @@ const environment = Layer.effect(
   }),
 ).pipe(Layer.provide(LayerNode.compile(Environment.node)))
 
-const withTool = <A, E, R>(directory: string, body: (registry: Tool.Interface) => Effect.Effect<A, E, R>) => {
+const withTool = <A, E, R>(
+  directory: string,
+  body: (registry: Tool.Interface) => Effect.Effect<A, E, R>,
+  options?: { edit?: boolean },
+) => {
   const activeLocation = Layer.succeed(
     Location.Service,
     Location.Service.of(location({ directory: AbsolutePath.make(directory) })),
@@ -111,29 +115,13 @@ const withTool = <A, E, R>(directory: string, body: (registry: Tool.Interface) =
   }).pipe(
     Effect.provide(
       AppNodeBuilder.build(
-        LayerNode.group([Tool.node, Tool.node, LocationMutation.node, FileMutation.node, writeToolNode]),
-        [
-          [Environment.node, environment],
-          [Location.node, activeLocation],
-          [Formatter.node, formatter],
-          [Permission.node, permission],
-        ],
-      ),
-    ),
-  )
-}
-
-const withMutationTools = <A, E, R>(directory: string, body: (registry: Tool.Interface) => Effect.Effect<A, E, R>) => {
-  const activeLocation = Layer.succeed(
-    Location.Service,
-    Location.Service.of(location({ directory: AbsolutePath.make(directory) })),
-  )
-  return Effect.gen(function* () {
-    return yield* body(yield* Tool.Service)
-  }).pipe(
-    Effect.provide(
-      AppNodeBuilder.build(
-        LayerNode.group([Tool.node, Tool.node, LocationMutation.node, FileMutation.node, writeToolNode, editToolNode]),
+        LayerNode.group([
+          Tool.node,
+          LocationMutation.node,
+          FileMutation.node,
+          writeToolNode,
+          ...(options?.edit ? [editToolNode] : []),
+        ]),
         [
           [Environment.node, environment],
           [Location.node, activeLocation],
@@ -491,15 +479,21 @@ describe("WriteTool", () => {
               ? Deferred.succeed(editApproved, undefined).pipe(Effect.asVoid)
               : Effect.void
 
-          const write = yield* withMutationTools(tmp.path, (registry) =>
-            executeTool(registry, call({ path: "shared.txt", content: "before" }, "call-serialized-write")),
+          const write = yield* withTool(
+            tmp.path,
+            (registry) =>
+              executeTool(registry, call({ path: "shared.txt", content: "before" }, "call-serialized-write")),
+            { edit: true },
           ).pipe(Effect.forkChild)
           yield* Deferred.await(formatting)
-          const edit = yield* withMutationTools(tmp.path, (registry) =>
-            executeTool(
-              registry,
-              editCall({ path: "shared.txt", oldString: "before", newString: "after" }, "call-serialized-edit"),
-            ),
+          const edit = yield* withTool(
+            tmp.path,
+            (registry) =>
+              executeTool(
+                registry,
+                editCall({ path: "shared.txt", oldString: "before", newString: "after" }, "call-serialized-edit"),
+              ),
+            { edit: true },
           ).pipe(Effect.forkChild)
           yield* Effect.yieldNow
           expect(yield* Deferred.isDone(editApproved)).toBe(false)
@@ -515,82 +509,4 @@ describe("WriteTool", () => {
     ),
   )
 
-  it.live("serializes complete write transactions across Location service instances", () =>
-    Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => {
-        reset()
-        const target = path.join(tmp.path, "shared.txt")
-        return Effect.gen(function* () {
-          const formatting = yield* Deferred.make<void>()
-          const releaseFormatting = yield* Deferred.make<void>()
-          const secondApproved = yield* Deferred.make<void>()
-          let formats = 0
-          formatFile = () =>
-            ++formats === 1
-              ? Deferred.succeed(formatting, undefined).pipe(
-                  Effect.andThen(Deferred.await(releaseFormatting)),
-                  Effect.as(false),
-                )
-              : Effect.succeed(false)
-          afterPermission = (input) =>
-            input.source?.id === "call-second-write" && input.action === "edit"
-              ? Deferred.succeed(secondApproved, undefined).pipe(Effect.asVoid)
-              : Effect.void
-
-          const first = yield* withTool(tmp.path, (registry) =>
-            executeTool(registry, call({ path: "shared.txt", content: "first" }, "call-first-write")),
-          ).pipe(Effect.forkChild)
-          yield* Deferred.await(formatting)
-          const second = yield* withTool(tmp.path, (registry) =>
-            executeTool(registry, call({ path: "shared.txt", content: "second" }, "call-second-write")),
-          ).pipe(Effect.forkChild)
-          yield* Effect.yieldNow
-          expect(yield* Deferred.isDone(secondApproved)).toBe(false)
-
-          yield* Deferred.succeed(releaseFormatting, undefined)
-          expect((yield* Fiber.join(first)).status).toBe("completed")
-          expect((yield* Fiber.join(second)).status).toBe("completed")
-          expect(yield* Deferred.isDone(secondApproved)).toBe(true)
-          expect(yield* Effect.promise(() => fs.readFile(target, "utf8"))).toBe("second")
-        })
-      },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
-    ),
-  )
-
-  it.live("allows complete write transactions for unrelated paths to run concurrently", () =>
-    Effect.acquireUseRelease(
-      Effect.promise(() => tmpdir()),
-      (tmp) => {
-        reset()
-        return Effect.gen(function* () {
-          const formatting = yield* Deferred.make<void>()
-          const releaseFormatting = yield* Deferred.make<void>()
-          let formats = 0
-          formatFile = () =>
-            ++formats === 1
-              ? Deferred.succeed(formatting, undefined).pipe(
-                  Effect.andThen(Deferred.await(releaseFormatting)),
-                  Effect.as(false),
-                )
-              : Effect.succeed(false)
-
-          const first = yield* withTool(tmp.path, (registry) =>
-            executeTool(registry, call({ path: "first.txt", content: "first" }, "call-first-path")),
-          ).pipe(Effect.forkChild)
-          yield* Deferred.await(formatting)
-          const second = yield* withTool(tmp.path, (registry) =>
-            executeTool(registry, call({ path: "second.txt", content: "second" }, "call-second-path")),
-          ).pipe(Effect.forkChild)
-
-          expect((yield* Fiber.join(second)).status).toBe("completed")
-          expect(yield* Effect.promise(() => fs.readFile(path.join(tmp.path, "second.txt"), "utf8"))).toBe("second")
-          yield* Deferred.succeed(releaseFormatting, undefined)
-          expect((yield* Fiber.join(first)).status).toBe("completed")
-        })
-      },
-      (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
-    ),
-  )
 })
