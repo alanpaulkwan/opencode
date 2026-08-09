@@ -66,6 +66,8 @@ import { animate } from "motion"
 import { attached, inline, kind, typeLabel } from "./message-file"
 import { readPartText } from "./message-part-text"
 import { SessionProgressIndicatorV2 } from "../v2/components/session-progress-indicator-v2"
+import { parseNotebookDataUrl, parsePdfDataUrl } from "./attachment-preview-parse"
+import { AttachmentPreviewCard, NotebookAttachmentPreview, PdfAttachmentPreview } from "./attachment-preview"
 
 async function writeClipboard(text: string): Promise<boolean> {
   const body = typeof document === "undefined" ? undefined : document.body
@@ -1238,6 +1240,13 @@ export function UserMessageDisplay(props: {
     dialog.show(() => <ImagePreview src={url} alt={alt} />)
   }
 
+  const openAttachmentPreview = (file: FilePart, name: string) => {
+    const pdf = parsePdfDataUrl(file.url)
+    if (pdf) return dialog.show(() => <PdfAttachmentPreview name={name} bytes={pdf} />)
+    const notebook = parseNotebookDataUrl({ url: file.url, mime: file.mime, filename: file.filename })
+    if (notebook) return dialog.show(() => <NotebookAttachmentPreview name={name} notebook={notebook} />)
+  }
+
   const handleCopy = async () => {
     const content = text()
     if (!content) return
@@ -1268,6 +1277,9 @@ export function UserMessageDisplay(props: {
           {(file) => {
             const type = kind(file)
             const name = file.filename ?? i18n.t("ui.message.attachment.alt")
+            const pdf = type === "file" ? parsePdfDataUrl(file.url) : undefined
+            const notebook = type === "file" ? parseNotebookDataUrl({ url: file.url, mime: file.mime, filename: file.filename }) : undefined
+            const previewType = pdf ? "pdf" : notebook ? "notebook" : undefined
 
             return (
               <Show
@@ -1276,10 +1288,11 @@ export function UserMessageDisplay(props: {
                   <div
                     data-slot="user-message-attachment"
                     data-type={type}
-                    data-clickable={type === "image" ? "true" : undefined}
+                    data-clickable={type === "image" || previewType ? "true" : undefined}
                     title={type === "file" ? name : undefined}
                     onClick={() => {
                       if (type === "image") openImagePreview(file.url, name)
+                      else openAttachmentPreview(file, name)
                     }}
                   >
                     <Show
@@ -1299,8 +1312,8 @@ export function UserMessageDisplay(props: {
                 <AttachmentCardV2
                   title={getFilename(name)}
                   hover={name}
-                  clickable={!!props.actions?.openAttachment}
-                  onClick={() => props.actions?.openAttachment?.(file)}
+                  clickable={!!props.actions?.openAttachment || !!previewType}
+                  onClick={() => (previewType ? openAttachmentPreview(file, name) : props.actions?.openAttachment?.(file))}
                 >
                   {typeLabel(name, file.mime, i18n.t("ui.common.file"))}
                 </AttachmentCardV2>
@@ -1567,11 +1580,24 @@ PART_MAPPING["tool"] = function ToolPartDisplay(props) {
   const render = createMemo(() => ToolRegistry.render(part().tool) ?? GenericTool)
   const controlledOpen = () => (props.onToolOpenChange ? (props.toolOpen ?? props.defaultOpen) : undefined)
   const handleToolOpenChange = (open: boolean) => props.onToolOpenChange?.(open)
-  const imageAttachments = createMemo(() => {
+  const previewAttachments = createMemo(() => {
     const state = part().state
     if (state.status !== "completed") return []
-    return state.attachments?.filter((attachment) => kind(attachment) === "image") ?? []
+    return (
+      state.attachments?.filter((attachment) => {
+        if (kind(attachment) === "image") return true
+        if (parsePdfDataUrl(attachment.url)) return true
+        return !!parseNotebookDataUrl({ url: attachment.url, mime: attachment.mime, filename: attachment.filename })
+      }) ?? []
+    )
   })
+
+  const openAttachmentPreview = (file: FilePart, name: string) => {
+    const pdf = parsePdfDataUrl(file.url)
+    if (pdf) return dialog.show(() => <PdfAttachmentPreview name={name} bytes={pdf} />)
+    const notebook = parseNotebookDataUrl({ url: file.url, mime: file.mime, filename: file.filename })
+    if (notebook) return dialog.show(() => <NotebookAttachmentPreview name={name} notebook={notebook} />)
+  }
 
   return (
     <Show when={!hideQuestion()}>
@@ -1633,19 +1659,33 @@ PART_MAPPING["tool"] = function ToolPartDisplay(props) {
             />
           </Match>
         </Switch>
-        <Show when={imageAttachments().length > 0}>
+        <Show when={previewAttachments().length > 0}>
           <div data-slot="tool-image-attachments">
-            <For each={imageAttachments()}>
+            <For each={previewAttachments()}>
               {(file) => {
                 const name = file.filename ?? i18n.t("ui.message.attachment.alt")
+                const type = kind(file)
+                const pdf = type === "file" ? parsePdfDataUrl(file.url) : undefined
                 return (
-                  <button
-                    type="button"
-                    data-slot="tool-image-attachment"
-                    onClick={() => dialog.show(() => <ImagePreview src={file.url} alt={name} />)}
+                  <Show
+                    when={type === "image"}
+                    fallback={
+                      <AttachmentPreviewCard
+                        name={name}
+                        type={pdf ? "pdf" : "notebook"}
+                        onClick={() => openAttachmentPreview(file, name)}
+                      />
+                    }
                   >
-                    <img src={file.url} alt={name} />
-                  </button>
+                    <button
+                      type="button"
+                      data-slot="tool-image-attachment"
+                      onClick={() => dialog.show(() => <ImagePreview src={file.url} alt={name} />)}
+                      aria-label={name}
+                    >
+                      <img src={file.url} alt={name} />
+                    </button>
+                  </Show>
                 )
               }}
             </For>

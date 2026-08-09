@@ -352,6 +352,8 @@ describe("HttpApi UI fallback", () => {
       expect(csp).toContain("script-src 'self' 'wasm-unsafe-eval'")
       expect(csp).toContain(`'sha256-${createHash("sha256").update(script).digest("base64")}'`)
       expect(csp).toContain("img-src 'self' data: https: blob:")
+      expect(csp).toContain("frame-src 'self' blob:")
+      expect(csp).toContain("object-src 'none'")
       expect(csp).toContain("connect-src * data: blob:")
     }),
   )

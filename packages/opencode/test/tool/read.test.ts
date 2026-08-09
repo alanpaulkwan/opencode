@@ -28,6 +28,7 @@ import {
 import { testEffect } from "../lib/effect"
 
 const FIXTURES_DIR = path.join(import.meta.dir, "fixtures")
+const PDF_ATTACHMENT_MAX_BYTES = 9 * 1024 * 1024
 
 afterEach(async () => {
   await disposeAllInstances()
@@ -498,6 +499,104 @@ describe("tool.read truncation", () => {
       expect(result.attachments?.[0]).not.toHaveProperty("id")
       expect(result.attachments?.[0]).not.toHaveProperty("sessionID")
       expect(result.attachments?.[0]).not.toHaveProperty("messageID")
+      expect(result.attachments?.[0].filename).toBe("image.png")
+    }),
+  )
+
+  it.live("small notebooks are attached as previewable notebook files", () =>
+    Effect.gen(function* () {
+      const dir = yield* tmpdirScoped()
+      const notebook = JSON.stringify({
+        cells: [{ cell_type: "markdown", metadata: {}, source: ["# Demo notebook\n"] }],
+        metadata: { kernelspec: { display_name: "Python 3", language: "python", name: "python3" } },
+        nbformat: 4,
+        nbformat_minor: 5,
+      })
+      yield* put(path.join(dir, "demo.ipynb"), notebook)
+
+      const result = yield* exec(dir, { filePath: path.join(dir, "demo.ipynb") })
+      expect(result.output).toBe("Notebook read successfully")
+      expect(result.metadata.truncated).toBe(false)
+      expect(result.attachments?.[0].mime).toBe("application/x-ipynb+json")
+      expect(result.attachments?.[0].filename).toBe("demo.ipynb")
+      expect(result.attachments?.[0].url.startsWith("data:application/x-ipynb+json;base64,")).toBe(true)
+    }),
+  )
+
+  it.live("small PDFs are attached successfully", () =>
+    Effect.gen(function* () {
+      const dir = yield* tmpdirScoped()
+      const pdf = Buffer.from("%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n")
+      yield* put(path.join(dir, "demo.pdf"), pdf)
+
+      const result = yield* exec(dir, { filePath: path.join(dir, "demo.pdf") })
+      expect(result.output).toBe("PDF read successfully")
+      expect(result.metadata.truncated).toBe(false)
+      expect(result.attachments?.[0].mime).toBe("application/pdf")
+      expect(result.attachments?.[0].filename).toBe("demo.pdf")
+      expect(result.attachments?.[0].url.startsWith("data:application/pdf;base64,")).toBe(true)
+    }),
+  )
+
+  it.live("oversized PDFs return a useful non-attachment result", () =>
+    Effect.gen(function* () {
+      const dir = yield* tmpdirScoped()
+      const pdf = Buffer.concat([
+        Buffer.from("%PDF-1.4\n"),
+        Buffer.alloc(PDF_ATTACHMENT_MAX_BYTES + 1, 0x20),
+      ])
+      yield* put(path.join(dir, "large.pdf"), pdf)
+
+      const result = yield* exec(dir, { filePath: path.join(dir, "large.pdf") })
+      expect(result.output).toContain("PDF is too large to attach")
+      expect(result.output).toContain("limit")
+      expect(result.attachments).toBeUndefined()
+      expect(result.metadata.truncated).toBe(false)
+    }),
+  )
+
+  it.live("oversized notebooks fall back to textual read output", () =>
+    Effect.gen(function* () {
+      const dir = yield* tmpdirScoped()
+      const notebook = JSON.stringify(
+        {
+          cells: [
+            {
+              cell_type: "code",
+              execution_count: null,
+              metadata: {},
+              outputs: [],
+              source: ["a".repeat(2_200_000)],
+            },
+          ],
+          metadata: {},
+          nbformat: 4,
+          nbformat_minor: 5,
+        },
+        null,
+        2,
+      )
+      yield* put(path.join(dir, "large.ipynb"), notebook)
+
+      const result = yield* exec(dir, { filePath: path.join(dir, "large.ipynb") })
+      expect(result.attachments).toBeUndefined()
+      expect(result.output).toContain("<type>file</type>")
+      expect(result.output).toContain('"cells": [')
+      expect(result.output).not.toBe("Notebook read successfully")
+    }),
+  )
+
+  it.live("malformed notebooks fall back to text output instead of attaching", () =>
+    Effect.gen(function* () {
+      const dir = yield* tmpdirScoped()
+      const notebook = JSON.stringify({ metadata: {}, nbformat: 4, nbformat_minor: 5 })
+      yield* put(path.join(dir, "broken.ipynb"), notebook)
+
+      const result = yield* exec(dir, { filePath: path.join(dir, "broken.ipynb") })
+      expect(result.attachments).toBeUndefined()
+      expect(result.output).toContain("<type>file</type>")
+      expect(result.output).toContain('"nbformat":4')
+      expect(result.output).not.toBe("Notebook read successfully")
     }),
   )
 

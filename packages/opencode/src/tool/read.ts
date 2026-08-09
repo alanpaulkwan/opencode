@@ -16,6 +16,8 @@ const MAX_LINE_SUFFIX = `... (line truncated to ${MAX_LINE_LENGTH} chars)`
 const MAX_BYTES = 50 * 1024
 const MAX_BYTES_LABEL = `${MAX_BYTES / 1024} KB`
 const SAMPLE_BYTES = 4096
+const PDF_ATTACHMENT_MAX_BYTES = 9 * 1024 * 1024
+const NOTEBOOK_ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024
 const SUPPORTED_IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"])
 
 class ReadStop extends Schema.TaggedErrorClass<ReadStop>()("ReadStop", {}) {}
@@ -226,6 +228,18 @@ export const ReadTool = Tool.define<
       return nonPrintableCount / bytes.length > 0.3
     }
 
+    const formatMiB = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MiB`
+
+    const isValidNotebookAttachment = (bytes: Uint8Array) => {
+      try {
+        const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes)
+        const parsed = JSON.parse(text)
+        return typeof parsed === "object" && parsed !== null && Array.isArray(parsed.cells)
+      } catch {
+        return false
+      }
+    }
+
     const run = Effect.fn("ReadTool.execute")(function* (
       params: Schema.Schema.Type<typeof Parameters>,
       ctx: Tool.Context<Metadata>,
@@ -298,14 +312,16 @@ export const ReadTool = Tool.define<
       }
 
       const loaded = yield* instruction.resolve(ctx.messages, filepath, ctx.messageID)
-      const sample = yield* readSample(filepath, Number(stat.size), SAMPLE_BYTES)
+      const fileSize = Number(stat.size)
+      const sample = yield* readSample(filepath, fileSize, SAMPLE_BYTES)
 
       const mime = sniffAttachmentMime(sample, FSUtil.mimeType(filepath))
       const isImage = SUPPORTED_IMAGE_MIMES.has(mime)
+      const isPdf = isPdfAttachment(mime)
+      const isNotebook = path.extname(filepath).toLowerCase() === ".ipynb"
 
-      if (isImage || isPdfAttachment(mime)) {
-        const bytes = yield* fs.readFile(filepath)
-        const msg = isPdfAttachment(mime) ? "PDF read successfully" : "Image read successfully"
+      if (isPdf && fileSize > PDF_ATTACHMENT_MAX_BYTES) {
+        const msg = `PDF is too large to attach (${formatMiB(fileSize)} > ${formatMiB(PDF_ATTACHMENT_MAX_BYTES)} limit); read a smaller PDF or extract text instead`
         return {
           title,
           output: msg,
@@ -314,13 +330,37 @@ export const ReadTool = Tool.define<
             truncated: false,
             loaded: loaded.map((item) => item.filepath),
           },
-          attachments: [
-            {
-              type: "file" as const,
-              mime,
-              url: `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`,
+        }
+      }
+
+      if (isImage || isPdf || (isNotebook && fileSize <= NOTEBOOK_ATTACHMENT_MAX_BYTES)) {
+        const bytes = yield* fs.readFile(filepath)
+        if (isNotebook && !isValidNotebookAttachment(bytes)) {
+          // Fall through to plain-text reading for malformed or non-UTF-8 notebooks.
+        } else {
+          const attachmentMime = isNotebook ? "application/x-ipynb+json" : mime
+          const msg = isNotebook
+            ? "Notebook read successfully"
+            : isPdf
+              ? "PDF read successfully"
+              : "Image read successfully"
+          return {
+            title,
+            output: msg,
+            metadata: {
+              preview: msg,
+              truncated: false,
+              loaded: loaded.map((item) => item.filepath),
             },
-          ],
+            attachments: [
+              {
+                type: "file" as const,
+                mime: attachmentMime,
+                filename: path.basename(filepath),
+                url: `data:${attachmentMime};base64,${Buffer.from(bytes).toString("base64")}`,
+              },
+            ],
+          }
         }
       }
 
