@@ -1,5 +1,6 @@
 import { createComponent, createMemo, ErrorBoundary, For, mergeProps, onMount, Show, type JSX, type ParentProps } from "solid-js"
-import type { RegionMap, RegionName, Slot, SlotMap, SlotName } from "@opencode-ai/plugin/tui/context"
+import type { RegionMap, RegionName } from "@opencode-ai/plugin/tui/context"
+import type { RegionRender } from "./api"
 import { resolveStructure, type Entry, type Part } from "./structure"
 import { useRoute } from "../context/route"
 import { useToast } from "../ui/toast"
@@ -73,11 +74,11 @@ export function Region<Name extends RegionName>(props: {
   // their documented-stable id — render-function identity would break if
   // the compiled parts prop ever rebuilt its closures. Claim entries key on
   // the render function (weakly, so hot-reloaded generations collect).
-  const partEntries = new Map<string, Entry<HostRender, Slot>>()
-  const claimEntries = new WeakMap<Slot, Entry<HostRender, Slot>>()
+  const partEntries = new Map<string, Entry<HostRender, RegionRender>>()
+  const claimEntries = new WeakMap<RegionRender, Entry<HostRender, RegionRender>>()
   const entries = createMemo(
     () =>
-      resolveStructure<HostRender, Slot>({
+      resolveStructure<HostRender, RegionRender>({
         region: props.name,
         parts: props.parts ?? [],
         claims: plugins.claims(props.name),
@@ -93,7 +94,7 @@ export function Region<Name extends RegionName>(props: {
         claimEntries.set(entry.claim.render, entry)
         return entry
       }),
-    [] as ReadonlyArray<Entry<HostRender, Slot>>,
+    [] as ReadonlyArray<Entry<HostRender, RegionRender>>,
     // Rows are reference-stable, so an elementwise comparison makes a claim
     // change in some other region a complete no-op for this one.
     { equals: (a, b) => a.length === b.length && a.every((entry, index) => entry === b[index]) },
@@ -113,7 +114,7 @@ export function Region<Name extends RegionName>(props: {
               // reactive through the merged getter. A bare render(props.input)
               // call would run inside the host's tracked scope and re-execute the
               // whole body (resetting plugin state) on every tracked read.
-              createComponent(entry.claim.render, mergeProps(() => props.input) as SlotMap[SlotName])
+              createComponent(entry.claim.render, mergeProps(() => props.input) as RegionMap[RegionName]["input"])
             }
           </PluginBoundary>
         )
