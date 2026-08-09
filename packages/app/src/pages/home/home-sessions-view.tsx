@@ -19,7 +19,6 @@ import {
   type OpenSessionOptions,
 } from "./home-sessions-controller"
 
-const SHOW_HOME_SESSION_ARCHIVE = false
 const HOME_SECTION_LABEL = "text-v2-text-text-muted [font-weight:440]"
 const HOME_SESSION_SEARCH_RESULTS_ID = "home-session-search-results"
 
@@ -42,6 +41,7 @@ export type HomeSessionsViewProps = {
   showProjectName: Accessor<boolean>
   server: Accessor<ServerConnection.Key>
   canCreateSession: Accessor<boolean>
+  canArchiveSession: Accessor<boolean>
   searchValue: Accessor<string>
   searchPlaceholder: Accessor<string>
   searchOpen: Accessor<boolean>
@@ -54,6 +54,7 @@ export type HomeSessionsViewProps = {
   onCreateSession: () => void
   onOpenSession: (session: Session, options?: OpenSessionOptions) => void
   onArchiveSession: (session: Session) => Promise<void>
+  onDeleteSession: (session: Session) => void
   onSetHoverTarget: (element: HTMLElement) => void
   onSetThumbTrack: (element: HTMLDivElement) => void
   onSetContent: (element: HTMLDivElement) => void
@@ -428,7 +429,7 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
         data-component="home-session-row"
         class={`
           flex h-10 min-w-0 w-full flex-1 shrink-0 cursor-default items-center gap-2 rounded-[6px] border-0
-          bg-transparent py-3 pl-3 pr-10 text-left text-v2-text-text-muted [font-weight:530]
+          bg-transparent py-3 pl-3 pr-[4.75rem] text-left text-v2-text-text-muted [font-weight:530]
           transition-[background-color,color,box-shadow] duration-[120ms] ease-in-out
           hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none
         `}
@@ -453,13 +454,13 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
           <HomeSessionProjectName name={props.record.projectName} />
         </Show>
       </button>
-      <Show when={SHOW_HOME_SESSION_ARCHIVE}>
-        <div
-          class={`
-            hover-reveal absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
-            group-hover/session:opacity-100 focus-within:opacity-100
-          `}
-        >
+      <div
+        class={`
+          hover-reveal absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
+          group-hover/session:opacity-100 focus-within:opacity-100
+        `}
+      >
+        <Show when={props.canArchiveSession()}>
           <TooltipV2 class="flex shrink-0 items-center" placement="bottom" value={props.language.t("common.archive")}>
             <IconButtonV2
               data-action="home-session-archive"
@@ -474,8 +475,22 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
               }}
             />
           </TooltipV2>
-        </div>
-      </Show>
+        </Show>
+        <TooltipV2 class="flex shrink-0 items-center" placement="bottom" value={props.language.t("common.delete")}>
+          <IconButtonV2
+            data-action="home-session-delete"
+            variant="ghost-muted"
+            size="large"
+            icon={<IconV2 name="trash" />}
+            aria-label={props.language.t("common.delete")}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              props.onDeleteSession(props.record.session)
+            }}
+          />
+        </TooltipV2>
+      </div>
     </div>
   )
 }

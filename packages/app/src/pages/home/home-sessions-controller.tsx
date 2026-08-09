@@ -1,10 +1,12 @@
 import type { Session } from "@opencode-ai/sdk/v2/client"
 import { preloadMarkdown } from "@opencode-ai/session-ui/markdown-cache"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { DialogFooter, DialogHeader, DialogTitleGroup, DialogV2 } from "@opencode-ai/ui/v2/dialog-v2"
 import { useQuery } from "@tanstack/solid-query"
 import { DateTime } from "luxon"
 import { type Accessor, createEffect, createMemo, createRoot, type JSX, startTransition } from "solid-js"
-import { produce } from "solid-js/store"
+import { createStore, produce } from "solid-js/store"
 import { useCommand } from "@/context/command"
 import {
   loadHomeSessionIndex,
@@ -18,9 +20,11 @@ import { sessionHasOpenTab, useTabs } from "@/context/tabs"
 import { compareSessionTime, displayName, errorMessage, projectForSession } from "@/pages/layout/helpers"
 import { useSessionTabAvatarState } from "@/pages/layout/project-avatar-state"
 import { pathKey } from "@/utils/path-key"
+import { sessionTitle } from "@/utils/session-title"
 import { showToast } from "@/utils/toast"
 import { Binary } from "@opencode-ai/core/util/binary"
 import { archiveHomeSession } from "../home-session-archive"
+import { deleteHomeSession, removedHomeSessionIDs } from "../home-session-delete"
 import type { HomeController } from "./home-controller"
 
 const HOME_SESSION_LIMIT = 64
@@ -78,6 +82,16 @@ export function createHomeSessionsController(home: HomeController) {
     staleTime: 30_000,
     refetchOnMount: true,
     refetchOnReconnect: true,
+  }))
+  const archiveSupport = useQuery(() => ({
+    queryKey: ["home", "session-archive-support", home.selection.value().server],
+    queryFn: async () => {
+      const ctx = home.server.focusedContext()
+      if (!ctx) return false
+      return (await ctx.sdk.protocol) === "v1"
+    },
+    enabled: !!home.server.focusedContext(),
+    initialData: false,
   }))
   const indexedSessions = createMemo(() =>
     retainHomeSessions(
@@ -177,6 +191,7 @@ export function createHomeSessionsController(home: HomeController) {
       showProjectName: () => !home.project.selected(),
       server: () => home.selection.value().server,
       canCreate: () => !!home.project.newSession(),
+      canArchive: () => archiveSupport.data,
       create: home.project.openNewSession,
       open: (session: Session, options?: OpenSessionOptions) => {
         const directoryKey = pathKey(session.directory)
@@ -231,6 +246,65 @@ export function createHomeSessionsController(home: HomeController) {
               title: language.t("common.requestFailed"),
               description: errorMessage(cause, language.t("common.requestFailed")),
             }),
+        })
+      },
+      delete: (session: Session) => {
+        void dialog.show(() => {
+          const [state, setState] = createStore({ deleting: false })
+          const name = createMemo(() => sessionTitle(session.title) ?? language.t("command.session.new"))
+          const handleDelete = async () => {
+            if (state.deleting) return
+            const conn = home.server.focused()
+            const ctx = home.server.focusedContext()
+            if (!conn || !ctx) return
+            const [store, setStore] = ctx.sync.child(session.directory)
+            setState("deleting", true)
+            const deleted = await deleteHomeSession({
+              server: ServerConnection.key(conn),
+              session,
+              delete: (sessionID) => ctx.sdk.api.session.remove({ sessionID }),
+              remove: () => {
+                const removed = removedHomeSessionIDs(store.session, session.id)
+                const removedSet = new Set(removed)
+                setStore(
+                  produce((draft) => {
+                    draft.session = draft.session.filter((item) => !removedSet.has(item.id))
+                  }),
+                )
+                removed.forEach((sessionID) => ctx.sync.session.evict(sessionID))
+                return removed
+              },
+              onError: (cause) =>
+                showToast({
+                  title: language.t("session.delete.failed.title"),
+                  description: errorMessage(cause, language.t("session.delete.failed.title")),
+                }),
+            })
+            if (deleted) {
+              dialog.close()
+              return
+            }
+            setState("deleting", false)
+          }
+
+          return (
+            <DialogV2 fit>
+              <DialogHeader hideClose>
+                <DialogTitleGroup
+                  title={language.t("session.delete.title")}
+                  description={language.t("session.delete.confirm", { name: name() })}
+                />
+              </DialogHeader>
+              <DialogFooter>
+                <ButtonV2 variant="ghost" disabled={state.deleting} onClick={() => dialog.close()}>
+                  {language.t("common.cancel")}
+                </ButtonV2>
+                <ButtonV2 variant="danger" disabled={state.deleting} onClick={handleDelete}>
+                  {language.t("session.delete.button")}
+                </ButtonV2>
+              </DialogFooter>
+            </DialogV2>
+          )
         })
       },
     },
