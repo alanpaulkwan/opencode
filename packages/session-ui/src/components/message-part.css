@@ -722,6 +722,39 @@
 
 [data-component="tool-part-wrapper"] {
   width: 100%;
+
+  [data-slot="tool-image-attachments"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  [data-slot="tool-image-attachment"] {
+    width: 58px;
+    height: 46px;
+    padding: 0;
+    overflow: hidden;
+    border: 0.5px solid var(--v2-border-border-base);
+    border-radius: 6px;
+    background: var(--v2-background-bg-layer-02);
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--v2-border-border-strong);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--v2-border-border-strong);
+      outline-offset: 2px;
+    }
+  }
+
+  [data-slot="tool-image-attachment"] img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 [data-component="dock-prompt"][data-kind="permission"] {

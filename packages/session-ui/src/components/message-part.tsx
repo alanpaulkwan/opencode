@@ -1534,6 +1534,7 @@ function ToolFileAccordion(props: { path: string; actions?: JSX.Element; childre
 PART_MAPPING["tool"] = function ToolPartDisplay(props) {
   const data = useData()
   const i18n = useI18n()
+  const dialog = useDialog()
   const part = () => props.part as ToolPart
   if (part().tool === "todowrite") return null
 
@@ -1566,6 +1567,11 @@ PART_MAPPING["tool"] = function ToolPartDisplay(props) {
   const render = createMemo(() => ToolRegistry.render(part().tool) ?? GenericTool)
   const controlledOpen = () => (props.onToolOpenChange ? (props.toolOpen ?? props.defaultOpen) : undefined)
   const handleToolOpenChange = (open: boolean) => props.onToolOpenChange?.(open)
+  const imageAttachments = createMemo(() => {
+    const state = part().state
+    if (state.status !== "completed") return []
+    return state.attachments?.filter((attachment) => kind(attachment) === "image") ?? []
+  })
 
   return (
     <Show when={!hideQuestion()}>
@@ -1627,6 +1633,24 @@ PART_MAPPING["tool"] = function ToolPartDisplay(props) {
             />
           </Match>
         </Switch>
+        <Show when={imageAttachments().length > 0}>
+          <div data-slot="tool-image-attachments">
+            <For each={imageAttachments()}>
+              {(file) => {
+                const name = file.filename ?? i18n.t("ui.message.attachment.alt")
+                return (
+                  <button
+                    type="button"
+                    data-slot="tool-image-attachment"
+                    onClick={() => dialog.show(() => <ImagePreview src={file.url} alt={name} />)}
+                  >
+                    <img src={file.url} alt={name} />
+                  </button>
+                )
+              }}
+            </For>
+          </div>
+        </Show>
       </div>
     </Show>
   )
