@@ -273,6 +273,11 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
               tabsStoreActions.removeSessions(detail)
             })
 
+            const openWorkspaceTerminal = (target: ServerConnection.Key, directory: string) => {
+              const tab = tabsStoreActions.addWorkspaceTerminalTab({ server: target, directory })
+              tabsStoreActions.select(tab)
+            }
+
             const openNewTab = () => {
               const route = layout.route()
               const activeSession = session()
@@ -323,6 +328,50 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
 
               tabs.newDraft({ server: fallback.server, directory: fallback.project.worktree }, "")
             }
+
+            const openWorkspaceTerminalTab = () => {
+              const route = layout.route()
+              const activeSession = session()
+              if (route.type === "session" && activeSession) {
+                openWorkspaceTerminal(route.server ?? server.key, activeSession.directory)
+                return
+              }
+
+              const activeTab = currentTab()
+              if (activeTab?.type === "draft") {
+                openWorkspaceTerminal(activeTab.server, activeTab.directory)
+                return
+              }
+              if (activeTab?.type === "terminal") {
+                tabsStoreActions.select(activeTab)
+                return
+              }
+
+              if (route.type === "home") {
+                const selection = layout.home.selection()
+                const conn = global.servers.list().find((item) => ServerConnection.key(item) === selection.server)
+                const project = conn
+                  ? global.ensureServerCtx(conn).projects.list().find((item) => item.worktree === selection.directory)
+                  : undefined
+                if (conn && project) {
+                  openWorkspaceTerminal(ServerConnection.key(conn), project.worktree)
+                  return
+                }
+              }
+
+              const current = layout.projects.list()[0]
+              if (current) {
+                openWorkspaceTerminal(server.key, current.worktree)
+                return
+              }
+
+              const fallback = global.servers.list().flatMap((conn) => {
+                const project = global.ensureServerCtx(conn).projects.list()[0]
+                return project ? [{ server: ServerConnection.key(conn), project }] : []
+              })[0]
+              if (fallback) openWorkspaceTerminal(fallback.server, fallback.project.worktree)
+            }
+
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 
             command.register("titlebar-home", () => [
@@ -422,6 +471,21 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                   }}
                   onReorder={(keys) => tabsStoreActions.reorder(keys)}
                 />
+                <TooltipV2
+                  placement="bottom"
+                  value={language.t("command.workspaceTerminal.open")}
+                  class="shrink-0"
+                >
+                  <IconButtonV2
+                    type="button"
+                    variant="ghost-muted"
+                    size="large"
+                    class="!w-9 shrink-0"
+                    icon={<IconV2 name="monitor" />}
+                    onClick={openWorkspaceTerminalTab}
+                    aria-label={language.t("command.workspaceTerminal.open")}
+                  />
+                </TooltipV2>
                 <TooltipV2
                   placement="bottom"
                   value={
