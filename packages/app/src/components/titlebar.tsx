@@ -233,6 +233,12 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                   if (parent) return parent
                 }
               }
+              if (route.type === "terminal") {
+                return tabsStore.find(
+                  (item) =>
+                    item.type === "terminal" && item.server === route.server && item.directory === route.directory,
+                )
+              }
             }
 
             const currentTab = () => matchRoute(layout.route())
@@ -252,6 +258,12 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                 const sessionId = s.parentID ?? s.id
                 const next = { server: route.server ?? server.key, sessionId }
                 tabsStoreActions.addSessionTab(next)
+              }
+              if (route.type === "terminal") {
+                tabsStoreActions.addWorkspaceTerminalTab({
+                  server: route.server ?? server.key,
+                  directory: route.directory,
+                })
               }
             })
 

@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, on, onCleanup, onMount } from "solid-js"
+import { For, Show, createEffect, createMemo, on, onCleanup, onMount, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
@@ -28,20 +28,43 @@ import { getTerminalHandoff, setTerminalHandoff } from "@/pages/session/handoff"
 import { useSessionLayout } from "@/pages/session/session-layout"
 
 export function TerminalPanelV2(props: { stacked?: boolean } = {}) {
+  const { workspaceKey, view } = useSessionLayout()
+
+  return (
+    <TerminalPanelV2Content
+      stacked={props.stacked}
+      opened={() => view().terminal.opened()}
+      onClose={() => view().terminal.close()}
+      workspaceKey={workspaceKey}
+    />
+  )
+}
+
+export function WorkspaceTerminalPanelV2() {
+  const sdk = useSDK()
+  return <TerminalPanelV2Content opened={() => true} workspaceKey={() => sdk().directory} fullPage />
+}
+
+function TerminalPanelV2Content(props: {
+  stacked?: boolean
+  opened: Accessor<boolean>
+  onClose?: () => void
+  workspaceKey: Accessor<string>
+  fullPage?: boolean
+}) {
   const layout = useLayout()
   const terminal = useTerminal()
   const sdk = useSDK()
   const language = useLanguage()
   const command = useCommand()
   const settings = useSettings()
-  const { workspaceKey, view } = useSessionLayout()
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const newLayout = createMemo(() => settings.general.newLayoutDesigns())
-  const opened = createMemo(() => view().terminal.opened())
+  const opened = createMemo(() => props.opened())
   const size = createSizing()
   const height = createMemo(() => layout.terminal.height())
-  const close = () => view().terminal.close()
+  const close = () => props.onClose?.()
   let root: HTMLDivElement | undefined
   let tabList: HTMLDivElement | undefined
 
@@ -89,7 +112,7 @@ export function TerminalPanelV2(props: { stacked?: boolean } = {}) {
       () => terminal.all().length,
       (count, prevCount) => {
         if (prevCount === undefined || prevCount <= 0 || count !== 0) return
-        if (!opened()) return
+        if (!opened() || props.fullPage) return
         close()
       },
     ),
@@ -120,7 +143,7 @@ export function TerminalPanelV2(props: { stacked?: boolean } = {}) {
     language.locale()
 
     setTerminalHandoff(
-      workspaceKey(),
+      props.workspaceKey(),
       terminal.all().map((pty) =>
         terminalTabLabel({
           title: pty.title,
@@ -134,7 +157,7 @@ export function TerminalPanelV2(props: { stacked?: boolean } = {}) {
   const handoff = createMemo(() => {
     const dir = sdk().directory
     if (!dir) return []
-    return getTerminalHandoff(workspaceKey()) ?? []
+    return getTerminalHandoff(props.workspaceKey()) ?? []
   })
 
   const all = terminal.all
@@ -174,32 +197,34 @@ export function TerminalPanelV2(props: { stacked?: boolean } = {}) {
       inert={!opened()}
       class="relative shrink-0 overflow-hidden bg-v2-background-bg-base"
       classList={{
-        "w-full": !isDesktop() || stacked(),
-        "min-w-0 h-full flex-1": isDesktop() && opened() && !stacked(),
-        "w-0 h-full pointer-events-none": isDesktop() && !opened(),
-        "rounded-[10px] shadow-[var(--v2-elevation-raised)]": isDesktop() && newLayout(),
+        "w-full": props.fullPage || !isDesktop() || stacked(),
+        "min-w-0 h-full flex-1": props.fullPage || (isDesktop() && opened() && !stacked()),
+        "w-0 h-full pointer-events-none": !props.fullPage && isDesktop() && !opened(),
+        "rounded-[10px] shadow-[var(--v2-elevation-raised)]": !props.fullPage && isDesktop() && newLayout(),
         "transition-[height] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[height] motion-reduce:transition-none":
           !isDesktop() && !size.active(),
       }}
-      style={{ height: panelHeight() }}
+      style={{ height: props.fullPage ? "100%" : panelHeight() }}
     >
-      <div classList={{ "md:hidden": !stacked(), hidden: stacked() }} onPointerDown={() => size.start()}>
-        <ResizeHandle
-          classList={{
-            "-top-1": newLayout(),
-          }}
-          direction="vertical"
-          size={pane()}
-          min={100}
-          max={max()}
-          collapseThreshold={50}
-          onResize={(next) => {
-            size.touch()
-            layout.terminal.resize(next)
-          }}
-          onCollapse={close}
-        />
-      </div>
+      <Show when={!props.fullPage}>
+        <div classList={{ "md:hidden": !stacked(), hidden: stacked() }} onPointerDown={() => size.start()}>
+          <ResizeHandle
+            classList={{
+              "-top-1": newLayout(),
+            }}
+            direction="vertical"
+            size={pane()}
+            min={100}
+            max={max()}
+            collapseThreshold={50}
+            onResize={(next) => {
+              size.touch()
+              layout.terminal.resize(next)
+            }}
+            onCollapse={close}
+          />
+        </div>
+      </Show>
       <div
         class="absolute inset-0 flex flex-col overflow-hidden"
         classList={{
@@ -208,7 +233,7 @@ export function TerminalPanelV2(props: { stacked?: boolean } = {}) {
           "border-l border-border-weaker-base": opened() && isDesktop() && !newLayout(),
           "pointer-events-none": !opened(),
         }}
-        style={{ height: contentHeight() }}
+        style={{ height: props.fullPage ? "100%" : contentHeight() }}
       >
         <Show
           when={terminal.ready()}
@@ -273,7 +298,12 @@ export function TerminalPanelV2(props: { stacked?: boolean } = {}) {
                 >
                   <For each={all()}>
                     {(pty, index) => (
-                      <SortableTerminalTabV2 terminal={pty} index={index} newLayout={newLayout()} onClose={close} />
+                      <SortableTerminalTabV2
+                        terminal={pty}
+                        index={index}
+                        newLayout={newLayout()}
+                        onClose={props.fullPage ? undefined : close}
+                      />
                     )}
                   </For>
                   <div class="h-full flex items-center justify-center">

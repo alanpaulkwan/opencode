@@ -8,7 +8,7 @@ import { useLocation, useNavigate, useParams } from "@solidjs/router"
 import { usePlatform } from "./platform"
 import { uuid } from "@/utils/uuid"
 import { SessionTabsRemovedDetail } from "@/components/titlebar-session-events"
-import { sessionHref } from "@/utils/session-route"
+import { sessionHref, workspaceTerminalHref } from "@/utils/session-route"
 import { createTabMemory } from "./tab-memory"
 import { nextTabAfterClose, pushClosedTab, removeClosedTabs, takeClosedTab, type ClosedTab } from "./closed-tabs"
 import { createDraftPromptSession, type PromptModel } from "./prompt-state"
@@ -28,7 +28,13 @@ export type DraftTab = {
   worktree?: string
 }
 
-export type Tab = SessionTab | DraftTab
+export type WorkspaceTerminalTab = {
+  type: "terminal"
+  server: ServerConnection.Key
+  directory: string
+}
+
+export type Tab = SessionTab | DraftTab | WorkspaceTerminalTab
 
 export type TabInfo = {
   title?: string
@@ -42,7 +48,11 @@ type RecentTab = {
 export const draftHref = (draftID: string) => `/new-session?draftId=${encodeURIComponent(draftID)}`
 
 export const tabHref = (tab: Tab) =>
-  tab.type === "draft" ? draftHref(tab.draftID) : sessionHref(tab.server, tab.sessionId)
+  tab.type === "draft"
+    ? draftHref(tab.draftID)
+    : tab.type === "terminal"
+      ? workspaceTerminalHref(tab.server, tab.directory)
+      : sessionHref(tab.server, tab.sessionId)
 
 export const tabKey = (tab: Tab) => (tab.type === "draft" ? `draft:${tab.draftID}` : `${tab.server}\n${tabHref(tab)}`)
 
@@ -179,6 +189,20 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
     const actions = {
       addSessionTab: (tab: Omit<SessionTab, "type">) => {
         const next = { type: "session" as const, ...tab }
+        const existing = store.find((item) => tabKey(item) === tabKey(next))
+        if (existing) return existing
+        void startTransition(() => {
+          setStore(
+            produce((tabs) => {
+              if (tabs.some((item) => tabKey(item) === tabKey(next))) return
+              tabs.push(next)
+            }),
+          )
+        })
+        return next
+      },
+      addWorkspaceTerminalTab: (tab: Omit<WorkspaceTerminalTab, "type">) => {
+        const next = { type: "terminal" as const, ...tab }
         const existing = store.find((item) => tabKey(item) === tabKey(next))
         if (existing) return existing
         void startTransition(() => {

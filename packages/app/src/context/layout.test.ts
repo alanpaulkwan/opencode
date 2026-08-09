@@ -1,6 +1,21 @@
 import { describe, expect, test } from "bun:test"
 import { createRoot, createSignal } from "solid-js"
+import { ServerConnection } from "./server"
+import { workspaceTerminalHref } from "@/utils/session-route"
+import { currentRoute } from "./layout"
 import { createSessionKeyReader, ensureSessionKey, pruneSessionKeys } from "./layout-helpers"
+
+describe("layout routes", () => {
+  test("parses a server-keyed workspace terminal route", () => {
+    const server = ServerConnection.Key.make("https://example.com:4096")
+
+    expect(currentRoute(workspaceTerminalHref(server, "/workspace/project"), "")).toEqual({
+      type: "terminal",
+      server,
+      directory: "/workspace/project",
+    })
+  })
+})
 
 describe("layout session-key helpers", () => {
   test("couples touch and scroll seed in order", () => {

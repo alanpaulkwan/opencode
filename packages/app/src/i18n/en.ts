@@ -61,6 +61,8 @@ export const dict = {
   "command.review.toggle": "Toggle review",
   "command.terminal.new": "New terminal",
   "command.terminal.new.description": "Create a new terminal tab",
+  "command.workspaceTerminal.open": "Open workspace terminal",
+  "command.workspaceTerminal.open.description": "Open the terminal in a workspace tab",
   "command.steps.toggle": "Toggle steps",
   "command.steps.toggle.description": "Show or hide steps for the current message",
   "command.message.previous": "Previous message",

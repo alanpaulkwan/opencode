@@ -52,6 +52,7 @@ export type HomeProjectsViewProps = {
   onSelectProject: (server: ServerConnection.Any, directory: string) => void
   onAddProjects: (server: ServerConnection.Any, directories: string[]) => void
   onOpenProjectNewSession: (server: ServerConnection.Any, directory: string) => void
+  onOpenProjectTerminal: (server: ServerConnection.Any, directory: string) => void
   onEditProject: (server: ServerConnection.Any, project: LocalProject) => void
   onRevealProject: (server: ServerConnection.Any, project: LocalProject) => void
   onClearNotifications: (server: ServerConnection.Any, project: LocalProject) => void
@@ -548,6 +549,9 @@ function HomeProjectRow(
               <MenuV2.Item onSelect={() => props.onOpenProjectNewSession(props.server, props.project.worktree)}>
                 {props.language.t("command.session.new")}
               </MenuV2.Item>
+              <MenuV2.Item onSelect={() => props.onOpenProjectTerminal(props.server, props.project.worktree)}>
+                {props.language.t("command.workspaceTerminal.open")}
+              </MenuV2.Item>
               <MenuV2.Item onSelect={() => props.onEditProject(props.server, props.project)}>
                 {props.language.t("dialog.project.edit.title")}
               </MenuV2.Item>
@@ -572,6 +576,14 @@ function HomeProjectRow(
             </MenuV2.Content>
           </MenuV2.Portal>
         </MenuV2>
+        <IconButtonV2
+          data-action="home-project-terminal"
+          variant="ghost-muted"
+          size="small"
+          icon={<IconV2 name="monitor" />}
+          aria-label={props.language.t("command.workspaceTerminal.open")}
+          onClick={() => props.onOpenProjectTerminal(props.server, props.project.worktree)}
+        />
         <IconButtonV2
           data-action="home-project-new-session"
           variant="ghost-muted"

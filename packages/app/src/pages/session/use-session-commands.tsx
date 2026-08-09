@@ -9,8 +9,10 @@ import { usePermission } from "@/context/permission"
 import { usePrompt } from "@/context/prompt"
 import { useSDK } from "@/context/sdk"
 import { useSettings } from "@/context/settings"
+import { useServer } from "@/context/server"
 import { useSync } from "@/context/sync"
 import { useTerminal } from "@/context/terminal"
+import { useTabs } from "@/context/tabs"
 import { showToast } from "@/utils/toast"
 import { downloadSessionExport, fetchSessionExport, sessionExportFilename } from "@/utils/session-export"
 import { findLast } from "@opencode-ai/core/util/array"
@@ -47,6 +49,8 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const settings = useSettings()
   const sync = useSync()
   const terminal = useTerminal()
+  const globalTabs = useTabs()
+  const server = useServer()
   const layout = useLayout()
   const local = useLocal()
   const navigate = useNavigate()
@@ -294,6 +298,15 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     if (terminal.all().length > 0) terminal.new({ focus: true })
     if (terminal.all().length === 0) terminal.requestFocus()
     view().terminal.open()
+  }
+
+  const openWorkspaceTerminal = () => {
+    const route = layout.route()
+    const tab = globalTabs.addWorkspaceTerminalTab({
+      server: "server" in route ? (route.server ?? server.key) : server.key,
+      directory: sdk().directory,
+    })
+    globalTabs.select(tab)
   }
 
   const closeTerminal = () => {
@@ -586,6 +599,12 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       description: language.t("command.terminal.new.description"),
       keybind: "ctrl+alt+t",
       onSelect: openTerminal,
+    }),
+    terminalCommand({
+      id: "workspaceTerminal.open",
+      title: language.t("command.workspaceTerminal.open"),
+      description: language.t("command.workspaceTerminal.open.description"),
+      onSelect: openWorkspaceTerminal,
     }),
   ]
 

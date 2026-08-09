@@ -62,12 +62,19 @@ import LegacyLayout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
 import { ErrorPage } from "./pages/error"
 import { useCheckServerHealth } from "./utils/server-health"
-import { legacySessionHref, legacySessionServer, requireServerKey, sessionHref } from "./utils/session-route"
+import {
+  legacySessionHref,
+  legacySessionServer,
+  requireDirectoryRoute,
+  requireServerKey,
+  sessionHref,
+} from "./utils/session-route"
 import { createSessionLineage } from "@/pages/session/session-lineage"
 
 import { SessionPage, SessionRouteErrorBoundary, TargetSessionRouteContent } from "@/pages/session"
 import { NewHome } from "@/pages/home"
 import { LegacyHome } from "@/pages/home/legacy-home"
+import { WorkspaceTerminalPage } from "@/pages/workspace-terminal"
 
 const NewSession = lazy(() => import("@/pages/new-session"))
 
@@ -132,6 +139,26 @@ const TargetSessionRoute = () => (
     <TargetSessionRouteContent />
   </TargetServerRoute>
 )
+
+function TargetWorkspaceTerminalRoute() {
+  const params = useParams<{ serverKey: string; dir: string }>()
+  const directory = () => requireDirectoryRoute(params.dir)
+  const serverKey = () => requireServerKey(params.serverKey)
+
+  return (
+    <TargetServerRoute>
+      <Show when={`${serverKey()}\0${directory()}`} keyed>
+        <ModelsProvider directory={directory}>
+          <SDKProvider directory={directory}>
+            <DirectoryDataProvider directory={directory} server={serverKey}>
+              <WorkspaceTerminalPage />
+            </DirectoryDataProvider>
+          </SDKProvider>
+        </ModelsProvider>
+      </Show>
+    </TargetServerRoute>
+  )
+}
 
 function LegacyTargetSessionRoute() {
   const params = useParams<{ serverKey: string; id: string }>()
@@ -639,6 +666,7 @@ function Routes(props: { serverScoped?: JSX.Element }) {
         <Route path="/" component={NewHome} />
         <Route path="/:dir/session/:id" component={NewLayoutLegacySessionRedirect} />
         <Route path="/server/:serverKey/session/:id" component={TargetSessionRoute} />
+        <Route path="/server/:serverKey/terminal/:dir" component={TargetWorkspaceTerminalRoute} />
       </Show>
       <Route path="/new-session" component={DraftRoute} />
     </>

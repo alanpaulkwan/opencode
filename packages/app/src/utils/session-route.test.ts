@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test"
 import { ServerConnection } from "@/context/server"
-import { legacySessionHref, legacySessionServer, requireServerKey, rootSession, sessionHref } from "./session-route"
+import {
+  legacySessionHref,
+  legacySessionServer,
+  requireDirectoryRoute,
+  requireServerKey,
+  rootSession,
+  sessionHref,
+  workspaceTerminalHref,
+} from "./session-route"
 
 describe("session routes", () => {
   test("uses the unique persisted server for a legacy session route", () => {
@@ -36,6 +44,21 @@ describe("session routes", () => {
 
   test("rejects malformed server keys", () => {
     expect(() => requireServerKey("not-base64")).toThrow("Invalid server route")
+  })
+
+  test("builds and decodes a server-keyed workspace terminal route", () => {
+    const server = ServerConnection.Key.make("https://example.com:4096")
+    const href = workspaceTerminalHref(server, "/Users/example/project")
+    const parts = href.split("/")
+
+    expect(parts[1]).toBe("server")
+    expect(parts[3]).toBe("terminal")
+    expect(requireServerKey(parts[2])).toBe(server)
+    expect(requireDirectoryRoute(parts[4])).toBe("/Users/example/project")
+  })
+
+  test("rejects malformed workspace directories", () => {
+    expect(() => requireDirectoryRoute("not-base64")).toThrow("Invalid directory route")
   })
 
   test("builds the legacy directory-keyed route", () => {

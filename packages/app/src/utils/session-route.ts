@@ -6,6 +6,10 @@ export function sessionHref(server: ServerConnection.Key, sessionID: string) {
   return `/server/${base64Encode(server)}/session/${sessionID}`
 }
 
+export function workspaceTerminalHref(server: ServerConnection.Key, directory: string) {
+  return `/server/${base64Encode(server)}/terminal/${base64Encode(directory)}`
+}
+
 export function legacySessionHref(directory: string, sessionID: string) {
   return `/${base64Encode(directory)}/session/${sessionID}`
 }
@@ -14,6 +18,12 @@ export function requireServerKey(segment: string | undefined) {
   const key = decode64(segment)
   if (!key || base64Encode(key) !== segment) throw new Error("Invalid server route")
   return ServerConnection.Key.make(key)
+}
+
+export function requireDirectoryRoute(segment: string | undefined) {
+  const directory = decode64(segment)
+  if (!directory || base64Encode(directory) !== segment) throw new Error("Invalid directory route")
+  return directory
 }
 
 export function legacySessionServer(

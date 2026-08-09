@@ -168,7 +168,7 @@ function SessionTabEntry(props: {
 }
 
 function DraftTabSlot(props: {
-  tab: Extract<Tab, { type: "draft" }>
+  tab: Extract<Tab, { type: "draft" | "terminal" }>
   id: string
   index: () => number
   active: () => boolean
@@ -200,6 +200,7 @@ function DraftTabSlot(props: {
         }}
         href={tabHref(props.tab)}
         title={props.title}
+        icon={props.tab.type === "terminal" ? "monitor" : undefined}
         onNavigate={() => props.onNavigate(ref)}
         onClose={props.onClose}
         active={props.active()}
@@ -225,7 +226,9 @@ export function TitlebarTabStrip(props: {
   let listRef!: HTMLDivElement
   let resizeFrame: number | undefined
   const [visibility, setVisibility] = createStore<Record<string, boolean>>({})
-  const visibleTabs = createMemo(() => props.tabs.filter((tab) => tab.type === "draft" || visibility[tabKey(tab)]))
+  const visibleTabs = createMemo(() =>
+    props.tabs.filter((tab) => tab.type === "draft" || tab.type === "terminal" || visibility[tabKey(tab)]),
+  )
   const visibleTabIds = () => visibleTabs().map(tabKey)
 
   command.register("titlebar-tab-cycle", () => [
@@ -355,6 +358,23 @@ export function TitlebarTabStrip(props: {
                       forceTruncate={props.forceTruncate}
                       serverCtx={serverCtx}
                       onVisibleChange={(visible) => setVisibility(id, visible)}
+                      onNavigate={(element) => {
+                        ref = element
+                        props.onNavigate(tab, element)
+                      }}
+                      onClose={() => props.onClose(tab)}
+                    />
+                  )
+                }
+
+                if (tab.type === "terminal") {
+                  return (
+                    <DraftTabSlot
+                      tab={tab}
+                      id={id}
+                      index={visibleIndex}
+                      active={() => props.currentTab() === tab}
+                      title={language.t("terminal.title")}
                       onNavigate={(element) => {
                         ref = element
                         props.onNavigate(tab, element)

@@ -18,7 +18,7 @@ import { createPathHelpers } from "./file/path"
 import type { ProjectAvatarVariant } from "@opencode-ai/ui/v2/project-avatar-v2"
 import { migrateLegacySessionStateKeys, ServerScope, SessionStateKey } from "@/utils/server-scope"
 import { createSessionKeyReader, ensureSessionKey, pruneSessionKeys } from "./layout-helpers"
-import { requireServerKey } from "@/utils/session-route"
+import { requireDirectoryRoute, requireServerKey } from "@/utils/session-route"
 import { type DraftTab, useTabs } from "./tabs"
 import { closeSessionTab, openSessionTab, previewSessionTab, type SessionTabs } from "./layout-tabs"
 
@@ -94,6 +94,7 @@ export type LayoutRoute =
   | { type: "draft"; draftID: string; server?: ServerConnection.Key }
   | { type: "dir-new-sesssion"; dir: string; dirBase64: string; server?: ServerConnection.Key }
   | { type: "session"; sessionId: string; server?: ServerConnection.Key }
+  | { type: "terminal"; directory: string; server?: ServerConnection.Key }
 
 const sessionPath = (key: string) => {
   const dir = SessionStateKey.route(key).split("/")[0]
@@ -141,6 +142,14 @@ export const currentRoute = (pathname: string, search: string): LayoutRoute => {
     return {
       type: "session",
       sessionId: parts[3],
+      server: requireServerKey(parts[1]),
+    }
+  }
+
+  if (parts[0] === "server" && parts[2] === "terminal" && parts[3]) {
+    return {
+      type: "terminal",
+      directory: requireDirectoryRoute(parts[3]),
       server: requireServerKey(parts[1]),
     }
   }
