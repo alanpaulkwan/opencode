@@ -20,6 +20,14 @@ import { terminalWebSocketURL } from "@/utils/terminal-websocket-url"
 
 const TOGGLE_TERMINAL_ID = "terminal.toggle"
 const DEFAULT_TOGGLE_TERMINAL_KEYBIND = "ctrl+`"
+
+export function isTerminalCopyShortcut(
+  event: Pick<KeyboardEvent, "ctrlKey" | "metaKey" | "shiftKey" | "key">,
+  hasSelection: boolean,
+) {
+  return event.ctrlKey && !event.metaKey && event.key.toLowerCase() === "c" && (event.shiftKey || hasSelection)
+}
+
 export interface TerminalProps extends ComponentProps<"div"> {
   pty: LocalPTY
   autoFocus?: boolean
@@ -425,9 +433,7 @@ export const Terminal = (props: TerminalProps) => {
       )
 
       t.attachCustomKeyEventHandler((event) => {
-        const key = event.key.toLowerCase()
-
-        if (event.ctrlKey && event.shiftKey && !event.metaKey && key === "c") {
+        if (isTerminalCopyShortcut(event, t.hasSelection())) {
           document.execCommand("copy")
           return true
         }
