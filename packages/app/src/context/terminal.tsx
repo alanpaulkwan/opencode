@@ -1,6 +1,6 @@
 import { createStore, produce } from "solid-js/store"
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import { batch, createEffect, createMemo, createRoot, on, onCleanup } from "solid-js"
+import { batch, createEffect, createMemo, createRoot, on, onCleanup, type Accessor } from "solid-js"
 import { useParams } from "@solidjs/router"
 import { useSDK, type DirectorySDK } from "./sdk"
 import type { Platform } from "./platform"
@@ -148,6 +148,7 @@ function createWorkspaceTerminalSession(
   dir: string,
   scope: ServerScopeValue,
   legacySessionID?: string,
+  focusRoot?: Accessor<HTMLElement | undefined>,
 ) {
   const location = { directory: sdk.directory }
   const legacy = scope === ServerScope.local ? getLegacyTerminalStorageKeys(dir, legacySessionID) : []
@@ -195,7 +196,8 @@ function createWorkspaceTerminalSession(
     const cancelOnOutsideFocus = (event: FocusEvent) => {
       if (!ui.focus) return
       if (!(event.target instanceof Element)) return
-      if (event.target.closest("#terminal-panel")) return
+      const root = focusRoot?.()
+      if (root ? root.contains(event.target) : event.target.closest("#terminal-panel")) return
       cancelFocus()
     }
     document.addEventListener("focusin", cancelOnOutsideFocus)
@@ -457,10 +459,13 @@ function createWorkspaceTerminalSession(
 export const { use: useTerminal, provider: TerminalProvider } = createSimpleContext({
   name: "Terminal",
   gate: false,
-  init: () => {
+  init: (
+    props: { legacySessionID?: Accessor<string | undefined>; focusRoot?: Accessor<HTMLElement | undefined> } = {},
+  ) => {
     const sdk = useSDK()
     const serverSDK = useServerSDK()
     const params = useParams()
+    const legacySessionID = () => (props.legacySessionID ? props.legacySessionID() : params.id)
     const cache = new Map<string, TerminalCacheEntry>()
     const scope = () => serverSDK().scope
     const directory = createMemo(() => base64Encode(sdk().directory))
@@ -498,7 +503,7 @@ export const { use: useTerminal, provider: TerminalProvider } = createSimpleCont
       }
 
       const entry = createRoot((dispose) => ({
-        value: createWorkspaceTerminalSession(sdk(), dir, serverScope, legacySessionID),
+        value: createWorkspaceTerminalSession(sdk(), dir, serverScope, legacySessionID, props.focusRoot),
         dispose,
       }))
 
@@ -507,11 +512,11 @@ export const { use: useTerminal, provider: TerminalProvider } = createSimpleCont
       return entry.value
     }
 
-    const workspace = createMemo(() => loadWorkspace(directory(), params.id, scope()))
+    const workspace = createMemo(() => loadWorkspace(directory(), legacySessionID(), scope()))
 
     createEffect(
       on(
-        () => ({ dir: directory(), id: params.id, scope: scope() }),
+        () => ({ dir: directory(), id: legacySessionID(), scope: scope() }),
         (next, prev) => {
           if (!prev?.dir) return
           if (next.dir === prev.dir && next.id === prev.id && next.scope === prev.scope) return

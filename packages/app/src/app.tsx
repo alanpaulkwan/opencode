@@ -54,7 +54,7 @@ import { usePlatform } from "@/context/platform"
 import { PromptProvider } from "@/context/prompt"
 import { ServerConnection, ServerProvider, serverName, useServer } from "@/context/server"
 import { SettingsProvider, useSettings } from "@/context/settings"
-import { TabsProvider, useTabs, type DraftTab } from "@/context/tabs"
+import { tabHref, tabKey, TabsProvider, useTabs, type DraftTab, type WorkspaceTerminalTab } from "@/context/tabs"
 import { SDKProvider, useSDK } from "@/context/sdk"
 import { WslServersProvider } from "@/wsl/context"
 import DirectoryLayout, { DirectoryDataProvider } from "@/pages/directory-layout"
@@ -142,22 +142,56 @@ const TargetSessionRoute = () => (
 
 function TargetWorkspaceTerminalRoute() {
   const params = useParams<{ serverKey: string; dir: string }>()
-  const directory = () => requireDirectoryRoute(params.dir)
-  const serverKey = () => requireServerKey(params.serverKey)
+  const tabs = useTabs()
+  const terminal = createMemo(() => ({
+    server: requireServerKey(params.serverKey),
+    directory: requireDirectoryRoute(params.dir),
+  }))
+
+  createEffect(() => {
+    if (!tabs.ready()) return
+    tabs.addWorkspaceTerminalTab(terminal())
+  })
+
+  return null
+}
+
+function WorkspaceTerminalHost(props: { tab: WorkspaceTerminalTab }) {
+  const global = useGlobal()
+  const location = useLocation()
+  const connection = createMemo(() =>
+    global.servers.list().find((item) => ServerConnection.key(item) === props.tab.server),
+  )
+  const active = () => location.pathname === tabHref(props.tab)
 
   return (
-    <TargetServerRoute>
-      <Show when={`${serverKey()}\0${directory()}`} keyed>
-        <ModelsProvider directory={directory}>
-          <SDKProvider directory={directory}>
-            <DirectoryDataProvider directory={directory} server={serverKey}>
-              <WorkspaceTerminalPage />
-            </DirectoryDataProvider>
-          </SDKProvider>
-        </ModelsProvider>
-      </Show>
-    </TargetServerRoute>
+    <Show when={connection()}>
+      <ServerSDKProvider server={connection}>
+        <ServerSyncProvider server={connection}>
+          <ModelsProvider directory={() => props.tab.directory}>
+            <SDKProvider directory={() => props.tab.directory}>
+              <div
+                data-workspace-terminal-host={tabKey(props.tab)}
+                aria-hidden={!active()}
+                inert={!active()}
+                class="absolute inset-0 min-h-0 min-w-0"
+                classList={{ invisible: !active(), "pointer-events-none": !active() }}
+              >
+                <WorkspaceTerminalPage active={active} />
+              </div>
+            </SDKProvider>
+          </ModelsProvider>
+        </ServerSyncProvider>
+      </ServerSDKProvider>
+    </Show>
   )
+}
+
+function WorkspaceTerminalHosts() {
+  const tabs = useTabs()
+  const terminals = createMemo(() => tabs.store.filter((tab): tab is WorkspaceTerminalTab => tab.type === "terminal"))
+
+  return <For each={terminals()}>{(tab) => <WorkspaceTerminalHost tab={tab} />}</For>
 }
 
 function LegacyTargetSessionRoute() {
@@ -399,7 +433,10 @@ function NewAppLayout(props: ParentProps<{ serverScoped?: JSX.Element }>) {
   return (
     <SelectedServerProviders>
       <ServerScopedProviders serverScoped={props.serverScoped}>
-        <NewLayout>{props.children}</NewLayout>
+        <NewLayout>
+          <WorkspaceTerminalHosts />
+          {props.children}
+        </NewLayout>
       </ServerScopedProviders>
     </SelectedServerProviders>
   )

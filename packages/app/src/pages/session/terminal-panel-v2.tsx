@@ -35,21 +35,33 @@ export function TerminalPanelV2(props: { stacked?: boolean } = {}) {
       stacked={props.stacked}
       opened={() => view().terminal.opened()}
       onClose={() => view().terminal.close()}
+      panelID="terminal-panel"
       workspaceKey={workspaceKey}
     />
   )
 }
 
-export function WorkspaceTerminalPanelV2() {
+export function WorkspaceTerminalPanelV2(props: { active?: Accessor<boolean> } = {}) {
   const sdk = useSDK()
-  return <TerminalPanelV2Content opened={() => true} workspaceKey={() => sdk().directory} fullPage />
+  return (
+    <TerminalPanelV2Content
+      opened={() => true}
+      workspaceKey={() => sdk().directory}
+      active={props.active}
+      focusOnActivate
+      fullPage
+    />
+  )
 }
 
 function TerminalPanelV2Content(props: {
   stacked?: boolean
   opened: Accessor<boolean>
   onClose?: () => void
+  panelID?: string
   workspaceKey: Accessor<string>
+  active?: Accessor<boolean>
+  focusOnActivate?: boolean
   fullPage?: boolean
 }) {
   const layout = useLayout()
@@ -62,6 +74,7 @@ function TerminalPanelV2Content(props: {
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const newLayout = createMemo(() => settings.general.newLayoutDesigns())
   const opened = createMemo(() => props.opened())
+  const active = () => props.active?.() ?? true
   const size = createSizing()
   const height = createMemo(() => layout.terminal.height())
   const close = () => props.onClose?.()
@@ -120,20 +133,31 @@ function TerminalPanelV2Content(props: {
 
   createEffect(
     on(
-      () => [opened(), terminal.active(), terminal.focusRequested(terminal.active())] as const,
-      ([next, id, requested]) => {
-        if (!next || !id || !requested) return
+      () => [opened(), active(), terminal.active(), terminal.focusRequested(terminal.active())] as const,
+      ([next, visible, id, requested]) => {
+        if (!next || !visible || !id || !requested) return
         focusTerminalById(id)
       },
     ),
   )
 
+  createEffect(
+    on(
+      () => [props.focusOnActivate, active(), terminal.ready(), terminal.active()] as const,
+      ([focusOnActivate, visible, ready, id], previous) => {
+        if (!focusOnActivate || !visible || !ready || !id) return
+        if (previous?.[0] && previous[1] && previous[2] && previous[3] === id) return
+        terminal.requestFocus(id)
+      },
+    ),
+  )
+
   createEffect(() => {
-    if (opened()) return
-    const active = document.activeElement
-    if (!(active instanceof HTMLElement)) return
-    if (!root?.contains(active)) return
-    active.blur()
+    if (opened() && active()) return
+    const focused = document.activeElement
+    if (!(focused instanceof HTMLElement)) return
+    if (!root?.contains(focused)) return
+    focused.blur()
   })
 
   createEffect(() => {
@@ -190,11 +214,11 @@ function TerminalPanelV2Content(props: {
   return (
     <aside
       ref={root}
-      id="terminal-panel"
+      id={props.panelID}
       role="region"
       aria-label={language.t("terminal.title")}
-      aria-hidden={!opened()}
-      inert={!opened()}
+      aria-hidden={!opened() || !active()}
+      inert={!opened() || !active()}
       class="relative shrink-0 overflow-hidden bg-v2-background-bg-base"
       classList={{
         "w-full": props.fullPage || !isDesktop() || stacked(),
@@ -231,7 +255,7 @@ function TerminalPanelV2Content(props: {
           "border-t border-border-weak-base": opened() && !isDesktop(),
           "border-t border-border-weaker-base": opened() && stacked() && !newLayout(),
           "border-l border-border-weaker-base": opened() && isDesktop() && !newLayout(),
-          "pointer-events-none": !opened(),
+          "pointer-events-none": !opened() || !active(),
         }}
         style={{ height: props.fullPage ? "100%" : contentHeight() }}
       >
