@@ -13,7 +13,7 @@ import {
 } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { Dynamic } from "solid-js/web"
-import { useNavigate } from "@solidjs/router"
+import { useLocation, useNavigate } from "@solidjs/router"
 import { useMutation } from "@tanstack/solid-query"
 import { createVirtualizer, defaultRangeExtractor, elementScroll, type VirtualItem } from "@tanstack/solid-virtual"
 import { Accordion } from "@opencode-ai/ui/accordion"
@@ -76,6 +76,7 @@ import { scheduleConnectedMeasure } from "./measure"
 import { observeElementOffsetReconnectAware } from "./observe-element-offset"
 import { createTimelineProjection } from "./projection"
 import { MessageComment, SummaryDiff, TimelineRow, TimelineRowMap } from "./rows"
+import { parseTimelineTimestampFlag, timelineTimestampMessageID } from "./timestamp"
 import { filterVirtualIndexes } from "./virtual-items"
 
 const emptyMessages: MessageType[] = []
@@ -86,9 +87,13 @@ const idle = { type: "idle" as const }
 
 type FramedTimelineRow = Exclude<TimelineRow.TimelineRow, { _tag: "TurnGap" }>
 type TimelineRowByTag<T extends TimelineRow.TimelineRow["_tag"]> = Extract<TimelineRow.TimelineRow, { _tag: T }>
+type TimelineCacheEntry = {
+  measurements: Map<boolean, VirtualItem[]>
+  toolOpen: Record<string, boolean | undefined>
+}
 
 const timelineFallbackItemSize = 60
-const timelineCache = new Map<string, { measurements: VirtualItem[]; toolOpen: Record<string, boolean | undefined> }>()
+const timelineCache = new Map<string, TimelineCacheEntry>()
 
 const taskDescription = (part: PartType, sessionID: string) => {
   if (part.type !== "tool" || part.tool !== "task") return
@@ -259,6 +264,7 @@ export function MessageTimeline(props: {
   let touchGesture: number | undefined
 
   const navigate = useNavigate()
+  const location = useLocation()
   const serverSDK = useServerSDK()
   const sdk = useSDK()
   const sync = useSync()
@@ -266,12 +272,24 @@ export function MessageTimeline(props: {
   const tabs = useTabs()
   const dialog = useDialog()
   const language = useLanguage()
+  const timestampFlag = createMemo(() => parseTimelineTimestampFlag(location.search))
+  const showTimestamps = createMemo(() => timestampFlag() ?? settings.general.showTimestamps())
+  const timestampFormat = createMemo(() => new Intl.DateTimeFormat(language.intl(), { timeStyle: "short" }))
+  const timestampTitleFormat = createMemo(() =>
+    new Intl.DateTimeFormat(language.intl(), { dateStyle: "medium", timeStyle: "medium" }),
+  )
   const { params, sessionKey } = useSessionKey()
   const ownerSessionKey = sessionKey()
-  const cached = timelineCache.get(ownerSessionKey)
-  const initialMeasurements = cached?.measurements
+  const cached = settings.ready() || timestampFlag() !== undefined ? timelineCache.get(ownerSessionKey) : undefined
+  const initialMeasurements = cached?.measurements.get(showTimestamps())
   const coldBottomMount = !initialMeasurements?.length && props.shouldAnchorBottom()
   const platform = usePlatform()
+
+  createEffect(() => {
+    const enabled = timestampFlag()
+    if (enabled === undefined || !settings.ready()) return
+    settings.general.setShowTimestamps(enabled)
+  })
 
   const [listRoot, setListRoot] = createSignal<HTMLDivElement>()
   const sessionID = createMemo(() => params.id)
@@ -539,10 +557,27 @@ export function MessageTimeline(props: {
     maybeAnchorBottom()
   })
 
+  createEffect(
+    on(
+      showTimestamps,
+      () => {
+        virtualizer.measure()
+        maybeAnchorBottom()
+      },
+      { defer: true },
+    ),
+  )
+
   onCleanup(() => {
     clearPrependAnchor()
+    const snapshots = timelineCache.get(ownerSessionKey) ?? {
+      measurements: new Map<boolean, VirtualItem[]>(),
+      toolOpen: {},
+    }
+    snapshots.measurements.set(showTimestamps(), virtualizer.takeSnapshot())
+    snapshots.toolOpen = { ...toolOpen }
     timelineCache.delete(ownerSessionKey)
-    timelineCache.set(ownerSessionKey, { measurements: virtualizer.takeSnapshot(), toolOpen: { ...toolOpen } })
+    timelineCache.set(ownerSessionKey, snapshots)
     while (timelineCache.size > 16) timelineCache.delete(timelineCache.keys().next().value!)
     if (resizePinFrame !== undefined) cancelAnimationFrame(resizePinFrame)
     if (overscanFrame !== undefined) cancelAnimationFrame(overscanFrame)
@@ -1097,10 +1132,16 @@ export function MessageTimeline(props: {
       const row = input.row()
       return row._tag === "AssistantPart" && row.previousAssistantPart
     }
+    const timestamp = createMemo(() => {
+      const messageID = timelineTimestampMessageID(input.row())
+      const created = messageID ? messageByID().get(messageID)?.time.created : undefined
+      return typeof created === "number" && Number.isFinite(created) ? created : undefined
+    })
 
     return (
       <div
         id={anchor() ? props.anchor(input.row().userMessageID) : undefined}
+        dir={showTimestamps() ? "ltr" : undefined}
         data-message-id={input.row().userMessageID}
         data-timeline-row={input.row()._tag}
         classList={{
@@ -1108,10 +1149,24 @@ export function MessageTimeline(props: {
           "md:max-w-200 2xl:max-w-[1000px]": props.centered,
           "md:mx-auto": props.centered,
           "pt-3": previousAssistantPart(),
+          "grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3": showTimestamps(),
         }}
       >
-        <div data-component="session-turn" class="min-w-0 w-full relative" style={{ height: "auto" }}>
-          {input.children}
+        <Show when={showTimestamps()}>
+          <time
+            data-slot="session-turn-timestamp"
+            class="min-w-0 pt-2 text-right text-11-regular text-text-weak tabular-nums whitespace-nowrap"
+            dir="ltr"
+            dateTime={timestamp() === undefined ? undefined : new Date(timestamp()!).toISOString()}
+            title={timestamp() === undefined ? undefined : timestampTitleFormat().format(timestamp()!)}
+          >
+            <Show when={timestamp() !== undefined}>{timestampFormat().format(timestamp()!)}</Show>
+          </time>
+        </Show>
+        <div dir={showTimestamps() ? language.direction() : undefined} classList={{ "col-start-2": showTimestamps() }}>
+          <div data-component="session-turn" class="min-w-0 w-full relative" style={{ height: "auto" }}>
+            {input.children}
+          </div>
         </div>
       </div>
     )
@@ -1185,6 +1240,7 @@ export function MessageTimeline(props: {
                       message={message()}
                       parts={getMsgParts(userMessageRow().userMessageID)}
                       actions={props.actions}
+                      showTimestamps={showTimestamps()}
                       useV2Actions={settings.general.newLayoutDesigns()}
                       comments={messageComments()}
                     />

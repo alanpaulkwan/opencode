@@ -171,6 +171,7 @@ export interface MessageProps {
   actions?: UserActions
   showAssistantCopyPartID?: string | null
   showReasoningSummaries?: boolean
+  showTimestamps?: boolean
   useV2Actions?: boolean
   comments?: UserMessageComment[]
 }
@@ -944,6 +945,7 @@ export function Message(props: MessageProps) {
             message={userMessage() as UserMessage}
             parts={props.parts}
             actions={props.actions}
+            showTimestamps={props.showTimestamps}
             useV2Actions={props.useV2Actions}
             comments={props.comments}
           />
@@ -1184,6 +1186,7 @@ export function UserMessageDisplay(props: {
   message: UserMessage
   parts: PartType[]
   actions?: UserActions
+  showTimestamps?: boolean
   useV2Actions?: boolean
   comments?: UserMessageComment[]
 }) {
@@ -1234,7 +1237,7 @@ export function UserMessageDisplay(props: {
     return items.filter((x) => !!x).join("\u00A0\u00B7\u00A0")
   })
 
-  const metaTail = stamp
+  const metaTail = () => (props.showTimestamps ? "" : stamp())
 
   const openImagePreview = (url: string, alt?: string) => {
     dialog.show(() => <ImagePreview src={url} alt={alt} />)

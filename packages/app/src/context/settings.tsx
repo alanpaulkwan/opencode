@@ -30,6 +30,7 @@ export interface Settings {
     showStatus: boolean
     showTerminal: boolean
     showReasoningSummaries: boolean
+    showTimestamps: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
     showCustomAgents: boolean
@@ -191,6 +192,7 @@ const defaultSettings: Settings = {
     showStatus: false,
     showTerminal: false,
     showReasoningSummaries: false,
+    showTimestamps: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
     showCustomAgents: false,
@@ -402,6 +404,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setShowReasoningSummaries(value: boolean) {
           setStore("general", "showReasoningSummaries", value)
+        },
+        showTimestamps: withFallback(() => store.general?.showTimestamps, defaultSettings.general.showTimestamps),
+        setShowTimestamps(value: boolean) {
+          setStore("general", "showTimestamps", value)
         },
         shellToolPartsExpanded: withFallback(
           () => store.general?.shellToolPartsExpanded,
