@@ -1,23 +1,34 @@
 import path from "path"
 import { Global } from "@opencode-ai/core/global"
 
-export type VoiceBackend = "auto" | "local" | "openrouter"
+export type VoiceBackend = "auto" | "local" | "elevenlabs" | "deepgram" | "openrouter"
 
 export const DEFAULT_OPENROUTER_MODEL = "nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b"
+export const DEFAULT_ELEVENLABS_MODEL = "scribe_v2"
+export const DEFAULT_DEEPGRAM_MODEL = "nova-3"
 export const DEFAULT_LOCAL_URL = "http://127.0.0.1:7003"
 export const FAST_OPENROUTER_MODELS = [
   "nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b",
   "qwen/qwen3-asr-flash-2026-02-10",
   "qwen/qwen3-asr-0.6b",
   "x-ai/grok-stt-1.0",
+  "google/chirp-3",
+  "fish-audio/transcribe-1",
   "mistralai/voxtral-mini-transcribe",
   "microsoft/mai-transcribe-1.5",
+] as const
+export const FAST_VOICE_MODELS = [
+  "elevenlabs/scribe_v2",
+  "deepgram/nova-3",
+  ...FAST_OPENROUTER_MODELS,
 ] as const
 
 export type VoiceConfig = {
   backend: VoiceBackend
   localUrl: string
   openrouterModel: string
+  elevenlabsModel: string
+  deepgramModel: string
 }
 
 export type VoiceStatus = {
@@ -71,6 +82,8 @@ export function voiceConfig(env: Record<string, string | undefined> = process.en
     backend,
     localUrl: (env.OPENCODE_VOICE_URL ?? DEFAULT_LOCAL_URL).replace(/\/+$/, ""),
     openrouterModel: env.OPENCODE_VOICE_MODEL ?? DEFAULT_OPENROUTER_MODEL,
+    elevenlabsModel: env.OPENCODE_VOICE_ELEVENLABS_MODEL ?? DEFAULT_ELEVENLABS_MODEL,
+    deepgramModel: env.OPENCODE_VOICE_DEEPGRAM_MODEL ?? DEFAULT_DEEPGRAM_MODEL,
   }
 }
 
@@ -90,6 +103,24 @@ export function transcriptText(payload: unknown) {
   const record = payload as Record<string, unknown>
   if (typeof record.text === "string") return record.text.trim()
   if (typeof record.transcript === "string") return record.transcript.trim()
+  const results = record.results
+  if (results && typeof results === "object") {
+    const channels = (results as { channels?: unknown }).channels
+    if (Array.isArray(channels)) {
+      const parts = channels
+        .flatMap((channel) => {
+          const alternatives = channel && typeof channel === "object" ? (channel as { alternatives?: unknown }).alternatives : undefined
+          if (!Array.isArray(alternatives)) return []
+          return alternatives.map((item) =>
+            item && typeof item === "object" && typeof (item as { transcript?: unknown }).transcript === "string"
+              ? (item as { transcript: string }).transcript.trim()
+              : "",
+          )
+        })
+        .filter(Boolean)
+      if (parts.length) return parts.join(" ").trim()
+    }
+  }
   return ""
 }
 
@@ -114,7 +145,7 @@ export async function voiceStatus(runtime: VoiceRuntime = {}): Promise<VoiceStat
     ok: !!active,
     backend: config.backend,
     model: active?.model ?? config.openrouterModel,
-    models: FAST_OPENROUTER_MODELS,
+    models: FAST_VOICE_MODELS,
     backends: backends.map((item) => ({ id: item.id, ready: item.ready })),
   }
 }
@@ -131,7 +162,7 @@ export async function transcribe(input: TranscribeInput, runtime: VoiceRuntime =
       ok: false,
       status: 503,
       error:
-        "No speech-to-text backend is ready. Set OPENROUTER_API_KEY or start the local voice-service.",
+        "No speech-to-text backend is ready. Set ELEVENLABS_API_KEY, DEEPGRAM_API_KEY, OPENROUTER_API_KEY, or start the local voice-service.",
     }
   }
 
@@ -166,7 +197,7 @@ export async function transcribeRequest(request: Request, runtime: VoiceRuntime 
 }
 
 function parseBackend(value: string | undefined): VoiceBackend {
-  if (value === "local" || value === "openrouter") return value
+  if (value === "local" || value === "elevenlabs" || value === "deepgram" || value === "openrouter") return value
   return "auto"
 }
 
@@ -176,10 +207,14 @@ function optionalString(value: FormDataEntryValue | null | undefined) {
 
 async function readyBackends(config: VoiceConfig, runtime: VoiceRuntime): Promise<ReadyBackend[]> {
   const env = runtime.env ?? process.env
-  const openrouterKey = await apiKey(env, runtime.authFile)
+  const elevenlabsKey = await apiKey("elevenlabs", env, runtime.authFile)
+  const deepgramKey = await apiKey("deepgram", env, runtime.authFile)
+  const openrouterKey = await apiKey("openrouter", env, runtime.authFile)
   const localReady = await localHealth(config.localUrl, runtime.fetch ?? fetch)
   return [
     { id: "local", ready: localReady, model: "local" },
+    { id: "elevenlabs", ready: !!elevenlabsKey, model: config.elevenlabsModel },
+    { id: "deepgram", ready: !!deepgramKey, model: config.deepgramModel },
     { id: "openrouter", ready: !!openrouterKey, model: config.openrouterModel },
   ]
 }
@@ -191,6 +226,8 @@ async function transcribeWith(
   runtime: VoiceRuntime,
 ): Promise<TranscribeResult> {
   if (backend === "local") return transcribeLocal(input, config, runtime)
+  if (backend === "elevenlabs") return transcribeElevenLabs(input, config, runtime)
+  if (backend === "deepgram") return transcribeDeepgram(input, config, runtime)
   return transcribeOpenRouter(input, config, runtime)
 }
 
@@ -214,7 +251,7 @@ async function transcribeOpenRouter(
   runtime: VoiceRuntime,
 ): Promise<TranscribeResult> {
   const env = runtime.env ?? process.env
-  const key = await apiKey(env, runtime.authFile)
+  const key = await apiKey("openrouter", env, runtime.authFile)
   if (!key) return { ok: false, status: 503, error: "OpenRouter API key is not configured" }
   const format = audioFormat(input.filename, input.mime)
   const response = await send(
@@ -246,6 +283,84 @@ async function transcribeOpenRouter(
   return { ok: true, text, backend: "openrouter", model: config.openrouterModel }
 }
 
+async function transcribeElevenLabs(
+  input: TranscribeInput,
+  config: VoiceConfig,
+  runtime: VoiceRuntime,
+): Promise<TranscribeResult> {
+  const env = runtime.env ?? process.env
+  const key = await apiKey("elevenlabs", env, runtime.authFile)
+  if (!key) return { ok: false, status: 503, error: "ElevenLabs API key is not configured" }
+  const form = new FormData()
+  form.set("file", audioBlob(input), input.filename)
+  form.set("model_id", config.elevenlabsModel)
+  form.set("tag_audio_events", "false")
+  form.set("no_verbatim", "true")
+  if (input.language) form.set("language_code", input.language)
+  const response = await send(
+    "https://api.elevenlabs.io/v1/speech-to-text",
+    {
+      method: "POST",
+      headers: { "xi-api-key": key },
+      body: form,
+    },
+    runtime,
+  )
+  if (!response) return { ok: false, status: 502, error: "ElevenLabs transcription request failed" }
+  const payload = await readJson(response)
+  if (!response.ok) return { ok: false, status: 502, error: payloadError(payload, "ElevenLabs transcription failed") }
+  const text = transcriptText(payload)
+  if (!text) return { ok: false, status: 422, error: "No speech detected" }
+  const language =
+    payload && typeof payload === "object" ? (payload as { language_code?: string }).language_code : undefined
+  return { ok: true, text, backend: "elevenlabs", model: config.elevenlabsModel, language }
+}
+
+async function transcribeDeepgram(
+  input: TranscribeInput,
+  config: VoiceConfig,
+  runtime: VoiceRuntime,
+): Promise<TranscribeResult> {
+  const env = runtime.env ?? process.env
+  const key = await apiKey("deepgram", env, runtime.authFile)
+  if (!key) return { ok: false, status: 503, error: "Deepgram API key is not configured" }
+  const query = new URLSearchParams({
+    model: config.deepgramModel,
+    smart_format: "true",
+    punctuate: "true",
+  })
+  if (input.language) query.set("language", input.language)
+  const response = await send(
+    `https://api.deepgram.com/v1/listen?${query.toString()}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${key}`,
+        "Content-Type": audioMime(input),
+      },
+      body: Buffer.from(input.bytes),
+    },
+    runtime,
+  )
+  if (!response) return { ok: false, status: 502, error: "Deepgram transcription request failed" }
+  const payload = await readJson(response)
+  if (!response.ok) return { ok: false, status: 502, error: payloadError(payload, "Deepgram transcription failed") }
+  const text = transcriptText(payload)
+  if (!text) return { ok: false, status: 422, error: "No speech detected" }
+  return { ok: true, text, backend: "deepgram", model: config.deepgramModel }
+}
+
+function audioMime(input: TranscribeInput) {
+  const raw = input.mime?.split(";")[0]?.trim()
+  if (raw) return raw
+  const format = audioFormat(input.filename, input.mime)
+  if (format === "mp3") return "audio/mpeg"
+  if (format === "m4a") return "audio/mp4"
+  if (format === "wav") return "audio/wav"
+  if (format === "ogg") return "audio/ogg"
+  return "audio/webm"
+}
+
 function audioBlob(input: TranscribeInput) {
   return new Blob([Buffer.from(input.bytes)], { type: input.mime || "application/octet-stream" })
 }
@@ -268,12 +383,24 @@ async function readJson(response: Response) {
   return response.json().catch(() => undefined)
 }
 
-async function apiKey(env: Record<string, string | undefined>, authFile?: string) {
-  const fromEnv = env.OPENROUTER_API_KEY
-  if (fromEnv?.trim()) return fromEnv.trim()
+async function apiKey(
+  provider: "openrouter" | "elevenlabs" | "deepgram",
+  env: Record<string, string | undefined>,
+  authFile?: string,
+) {
+  const envNames =
+    provider === "elevenlabs"
+      ? ["ELEVENLABS_API_KEY", "ELEVEN_API_KEY"]
+      : provider === "deepgram"
+        ? ["DEEPGRAM_API_KEY"]
+        : ["OPENROUTER_API_KEY"]
+  for (const name of envNames) {
+    const value = env[name]?.trim()
+    if (value) return value
+  }
   const file = authFile ?? path.join(Global.Path.data, "auth.json")
   const data = await readAuthFile(file)
-  const entry = data.openrouter
+  const entry = data[provider]
   if (entry && typeof entry === "object" && (entry as { type?: string }).type === "api") {
     const key = (entry as { key?: unknown }).key
     if (typeof key === "string" && key.trim()) return key.trim()

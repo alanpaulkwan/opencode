@@ -26,6 +26,11 @@ describe("voice transcription", () => {
     expect(transcriptText({ transcript: "world" })).toBe("world")
     expect(transcriptText("raw")).toBe("raw")
     expect(transcriptText({})).toBe("")
+    expect(
+      transcriptText({
+        results: { channels: [{ alternatives: [{ transcript: " from nova " }] }] },
+      }),
+    ).toBe("from nova")
   })
 
   test("extracts provider error messages without leaking bodies", () => {
@@ -49,6 +54,10 @@ describe("voice transcription", () => {
     expect(status.models).toContain("nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b")
     expect(status.models).toContain("qwen/qwen3-asr-flash-2026-02-10")
     expect(status.models).toContain("x-ai/grok-stt-1.0")
+    expect(status.models).toContain("elevenlabs/scribe_v2")
+    expect(status.models).toContain("deepgram/nova-3")
+    expect(status.models).toContain("google/chirp-3")
+    expect(status.models).toContain("fish-audio/transcribe-1")
     expect(status.models).not.toContain("openai/whisper-large-v3-turbo")
     expect(status.models).not.toContain("openai/gpt-4o-mini-transcribe")
   })
@@ -77,6 +86,8 @@ describe("voice transcription", () => {
     expect(status.ok).toBe(true)
     expect(status.backends).toEqual([
       { id: "local", ready: true },
+      { id: "elevenlabs", ready: false },
+      { id: "deepgram", ready: false },
       { id: "openrouter", ready: true },
     ])
     const result = await transcribe({ bytes: new Uint8Array([1, 2, 3]), filename: "clip.webm" }, runtime)
@@ -119,6 +130,67 @@ describe("voice transcription", () => {
     })
   })
 
+  test("uses ElevenLabs Scribe before OpenRouter when both keys are present", async () => {
+    const authFile = path.join(await mkdtemp(path.join(tmpdir(), "opencode-voice-")), "auth.json")
+    await writeFile(
+      authFile,
+      JSON.stringify({
+        elevenlabs: { type: "api", key: "el-test" },
+        openrouter: { type: "api", key: "or-test" },
+      }),
+    )
+    const runtime: VoiceRuntime = {
+      env: {},
+      authFile,
+      fetch: async (input, init) => {
+        const url = String(input)
+        if (url.endsWith("/health")) return new Response("nope", { status: 503 })
+        if (url.includes("api.elevenlabs.io")) {
+          const form = init?.body as FormData
+          expect(form.get("model_id")).toBe("scribe_v2")
+          return Response.json({ text: " from scribe ", language_code: "eng" })
+        }
+        throw new Error(`unexpected ${url}`)
+      },
+    }
+    const result = await transcribe({ bytes: new Uint8Array([9, 9]), filename: "talk.webm" }, runtime)
+    expect(result).toEqual({
+      ok: true,
+      text: "from scribe",
+      backend: "elevenlabs",
+      model: "scribe_v2",
+      language: "eng",
+    })
+  })
+
+  test("uses Deepgram Nova-3 when only a Deepgram key is configured", async () => {
+    const authFile = path.join(await mkdtemp(path.join(tmpdir(), "opencode-voice-")), "auth.json")
+    await writeFile(authFile, JSON.stringify({ deepgram: { type: "api", key: "dg-test" } }))
+    const runtime: VoiceRuntime = {
+      env: {},
+      authFile,
+      fetch: async (input, init) => {
+        const url = String(input)
+        if (url.endsWith("/health")) return new Response("nope", { status: 503 })
+        if (url.includes("api.deepgram.com")) {
+          expect(url).toContain("model=nova-3")
+          expect((init?.headers as Record<string, string>).Authorization).toBe("Token dg-test")
+          return Response.json({
+            results: { channels: [{ alternatives: [{ transcript: " from nova-3 " }] }] },
+          })
+        }
+        throw new Error(`unexpected ${url}`)
+      },
+    }
+    const result = await transcribe({ bytes: new Uint8Array([8, 8]), filename: "talk.webm" }, runtime)
+    expect(result).toEqual({
+      ok: true,
+      text: "from nova-3",
+      backend: "deepgram",
+      model: "nova-3",
+    })
+  })
+
   test("ignores OpenAI keys and does not call api.openai.com", async () => {
     const authFile = path.join(await mkdtemp(path.join(tmpdir(), "opencode-voice-")), "auth.json")
     await writeFile(authFile, JSON.stringify({ openai: { type: "api", key: "sk-test" } }))
@@ -135,7 +207,7 @@ describe("voice transcription", () => {
     expect(result.ok).toBe(false)
     if (!result.ok) {
       expect(result.status).toBe(503)
-      expect(result.error).toContain("OPENROUTER_API_KEY")
+      expect(result.error).toContain("ELEVENLABS_API_KEY")
       expect(result.error).not.toContain("OpenAI")
     }
   })
