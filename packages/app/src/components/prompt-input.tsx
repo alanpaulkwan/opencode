@@ -78,6 +78,8 @@ import { PromptContextItems } from "./prompt-input/context-items"
 import { PromptImageAttachments } from "./prompt-input/image-attachments"
 import { PromptDragOverlay } from "./prompt-input/drag-overlay"
 import { promptPlaceholder } from "./prompt-input/placeholder"
+import { PromptVoiceButton } from "@/components/prompt-voice-button"
+import { togglePromptVoice } from "@/utils/voice-recorder"
 import { createPromptInputTransientState } from "./prompt-input/transient-state"
 import { showToast } from "@/utils/toast"
 import { ImagePreview } from "@opencode-ai/ui/image-preview"
@@ -450,6 +452,14 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       keybind: "mod+u",
       disabled: store.mode !== "normal",
       onSelect: pick,
+    },
+    {
+      id: "prompt.voice",
+      title: language.t("command.prompt.voice"),
+      category: language.t("command.category.session"),
+      keybind: "mod+shift+v",
+      disabled: store.mode !== "normal",
+      onSelect: () => togglePromptVoice(),
     },
     {
       id: "prompt.mode.shell",
@@ -1575,6 +1585,27 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             />
 
             <div class="flex items-center gap-1 pointer-events-auto">
+              <PromptVoiceButton
+                variant="v1"
+                disabled={store.mode !== "normal"}
+                currentText={() =>
+                  prompt
+                    .current()
+                    .map((part) => ("content" in part ? part.content : ""))
+                    .join("")
+                }
+                insertText={(text) => {
+                  editorRef.focus()
+                  if (typeof document.execCommand === "function" && document.execCommand("insertText", false, text)) return
+                  const current = prompt
+                    .current()
+                    .map((part) => ("content" in part ? part.content : ""))
+                    .join("")
+                  const next = current + text
+                  prompt.set([{ type: "text", content: next, start: 0, end: next.length }], next.length)
+                }}
+                keybind={command.keybind("prompt.voice")}
+              />
               <Tooltip placement="top" inactive={!working() && blank()} value={tip()}>
                 <IconButton
                   data-action="prompt-submit"

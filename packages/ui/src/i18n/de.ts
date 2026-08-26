@@ -217,5 +217,9 @@ export const dict = {
   "ui.promptInput.chooseVariant": "Modellvariante auswählen",
   "ui.promptInput.send": "Senden",
   "ui.promptInput.stop": "Stoppen",
+  "ui.promptInput.voice": "Spracheingabe",
+  "ui.promptInput.voice.stop": "Aufnahme beenden",
+  "ui.promptInput.voice.transcribing": "Wird transkribiert…",
+  "ui.promptInput.voice.hold": "Zum Sprechen gedrückt halten",
   "ui.tabs.close": "Tab schließen",
 } satisfies Partial<Record<Keys, string>>

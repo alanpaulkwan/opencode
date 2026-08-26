@@ -133,6 +133,10 @@ export const dict = {
   "ui.promptInput.chooseVariant": "选择模型变体",
   "ui.promptInput.send": "发送",
   "ui.promptInput.stop": "停止",
+  "ui.promptInput.voice": "语音输入",
+  "ui.promptInput.voice.stop": "停止录音",
+  "ui.promptInput.voice.transcribing": "正在转录…",
+  "ui.promptInput.voice.hold": "按住说话",
 
   "ui.tabs.close": "关闭标签页",
 

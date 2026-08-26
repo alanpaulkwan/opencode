@@ -135,6 +135,10 @@ export const dict = {
   "ui.promptInput.chooseVariant": "Elegir variante del modelo",
   "ui.promptInput.send": "Enviar",
   "ui.promptInput.stop": "Detener",
+  "ui.promptInput.voice": "Entrada de voz",
+  "ui.promptInput.voice.stop": "Detener grabación",
+  "ui.promptInput.voice.transcribing": "Transcribiendo…",
+  "ui.promptInput.voice.hold": "Mantén pulsado para hablar",
 
   "ui.tabs.close": "Cerrar pestaña",
 

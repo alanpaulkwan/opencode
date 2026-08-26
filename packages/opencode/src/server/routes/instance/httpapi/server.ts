@@ -69,6 +69,7 @@ import * as SessionExecutionLocal from "@opencode-ai/core/session/execution/loca
 import { lazy } from "@/util/lazy"
 import { CorsConfig, isAllowedCorsOrigin, type CorsOptions } from "@opencode-ai/server/cors"
 import { serveUIEffect } from "@/server/shared/ui"
+import { voiceRoute } from "@/server/voice-route"
 import { ServerAuth } from "@/server/auth"
 import { InstanceHttpApi, RootHttpApi } from "./api"
 import { Api } from "@opencode-ai/server/api"
@@ -190,6 +191,7 @@ const docResponse = lazy(() => HttpServerResponse.jsonUnsafe(OpenApi.fromApi(Pub
 const docRoute = HttpRouter.use((router) => router.add("GET", "/doc", () => Effect.succeed(docResponse()))).pipe(
   Layer.provide(authOnlyRouterLayer),
 )
+const voiceHttpRoute = voiceRoute.pipe(Layer.provide(authOnlyRouterLayer))
 
 const uiRoute = HttpRouter.use((router) =>
   Effect.gen(function* () {
@@ -280,6 +282,7 @@ export function createRoutes(
     instanceRoutes,
     serverRoutes,
     docRoute,
+    voiceHttpRoute,
     uiRoute,
   ).pipe(
     Layer.provide([
