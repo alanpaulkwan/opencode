@@ -1,26 +1,23 @@
 import path from "path"
 import { Global } from "@opencode-ai/core/global"
 
-export type VoiceBackend = "auto" | "local" | "openrouter" | "openai"
+export type VoiceBackend = "auto" | "local" | "openrouter"
 
-export const DEFAULT_OPENROUTER_MODEL = "openai/whisper-large-v3-turbo"
-export const DEFAULT_OPENAI_MODEL = "gpt-4o-mini-transcribe"
+export const DEFAULT_OPENROUTER_MODEL = "nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b"
 export const DEFAULT_LOCAL_URL = "http://127.0.0.1:7003"
 export const FAST_OPENROUTER_MODELS = [
-  "openai/whisper-large-v3-turbo",
-  "openai/gpt-4o-mini-transcribe",
-  "openai/gpt-4o-transcribe",
+  "nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b",
   "qwen/qwen3-asr-flash-2026-02-10",
   "qwen/qwen3-asr-0.6b",
-  "nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b",
-  "openai/gpt-transcribe",
+  "x-ai/grok-stt-1.0",
+  "mistralai/voxtral-mini-transcribe",
+  "microsoft/mai-transcribe-1.5",
 ] as const
 
 export type VoiceConfig = {
   backend: VoiceBackend
   localUrl: string
   openrouterModel: string
-  openaiModel: string
 }
 
 export type VoiceStatus = {
@@ -74,7 +71,6 @@ export function voiceConfig(env: Record<string, string | undefined> = process.en
     backend,
     localUrl: (env.OPENCODE_VOICE_URL ?? DEFAULT_LOCAL_URL).replace(/\/+$/, ""),
     openrouterModel: env.OPENCODE_VOICE_MODEL ?? DEFAULT_OPENROUTER_MODEL,
-    openaiModel: env.OPENCODE_VOICE_OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL,
   }
 }
 
@@ -135,7 +131,7 @@ export async function transcribe(input: TranscribeInput, runtime: VoiceRuntime =
       ok: false,
       status: 503,
       error:
-        "No speech-to-text backend is ready. Set OPENROUTER_API_KEY, connect an OpenAI key, or start the local voice-service.",
+        "No speech-to-text backend is ready. Set OPENROUTER_API_KEY or start the local voice-service.",
     }
   }
 
@@ -170,7 +166,7 @@ export async function transcribeRequest(request: Request, runtime: VoiceRuntime 
 }
 
 function parseBackend(value: string | undefined): VoiceBackend {
-  if (value === "local" || value === "openrouter" || value === "openai") return value
+  if (value === "local" || value === "openrouter") return value
   return "auto"
 }
 
@@ -180,13 +176,11 @@ function optionalString(value: FormDataEntryValue | null | undefined) {
 
 async function readyBackends(config: VoiceConfig, runtime: VoiceRuntime): Promise<ReadyBackend[]> {
   const env = runtime.env ?? process.env
-  const openrouterKey = await apiKey("openrouter", env, runtime.authFile)
-  const openaiKey = await apiKey("openai", env, runtime.authFile)
+  const openrouterKey = await apiKey(env, runtime.authFile)
   const localReady = await localHealth(config.localUrl, runtime.fetch ?? fetch)
   return [
     { id: "local", ready: localReady, model: "local" },
     { id: "openrouter", ready: !!openrouterKey, model: config.openrouterModel },
-    { id: "openai", ready: !!openaiKey, model: config.openaiModel },
   ]
 }
 
@@ -197,8 +191,7 @@ async function transcribeWith(
   runtime: VoiceRuntime,
 ): Promise<TranscribeResult> {
   if (backend === "local") return transcribeLocal(input, config, runtime)
-  if (backend === "openrouter") return transcribeOpenRouter(input, config, runtime)
-  return transcribeOpenAI(input, config, runtime)
+  return transcribeOpenRouter(input, config, runtime)
 }
 
 async function transcribeLocal(input: TranscribeInput, config: VoiceConfig, runtime: VoiceRuntime): Promise<TranscribeResult> {
@@ -221,7 +214,7 @@ async function transcribeOpenRouter(
   runtime: VoiceRuntime,
 ): Promise<TranscribeResult> {
   const env = runtime.env ?? process.env
-  const key = await apiKey("openrouter", env, runtime.authFile)
+  const key = await apiKey(env, runtime.authFile)
   if (!key) return { ok: false, status: 503, error: "OpenRouter API key is not configured" }
   const format = audioFormat(input.filename, input.mime)
   const response = await send(
@@ -253,31 +246,6 @@ async function transcribeOpenRouter(
   return { ok: true, text, backend: "openrouter", model: config.openrouterModel }
 }
 
-async function transcribeOpenAI(input: TranscribeInput, config: VoiceConfig, runtime: VoiceRuntime): Promise<TranscribeResult> {
-  const env = runtime.env ?? process.env
-  const key = await apiKey("openai", env, runtime.authFile)
-  if (!key) return { ok: false, status: 503, error: "OpenAI API key is not configured" }
-  const form = new FormData()
-  form.set("file", audioBlob(input), input.filename)
-  form.set("model", config.openaiModel)
-  if (input.language) form.set("language", input.language)
-  const response = await send(
-    "https://api.openai.com/v1/audio/transcriptions",
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}` },
-      body: form,
-    },
-    runtime,
-  )
-  if (!response) return { ok: false, status: 502, error: "OpenAI transcription request failed" }
-  const payload = await readJson(response)
-  if (!response.ok) return { ok: false, status: 502, error: payloadError(payload, "OpenAI transcription failed") }
-  const text = transcriptText(payload)
-  if (!text) return { ok: false, status: 422, error: "No speech detected" }
-  return { ok: true, text, backend: "openai", model: config.openaiModel }
-}
-
 function audioBlob(input: TranscribeInput) {
   return new Blob([Buffer.from(input.bytes)], { type: input.mime || "application/octet-stream" })
 }
@@ -300,12 +268,12 @@ async function readJson(response: Response) {
   return response.json().catch(() => undefined)
 }
 
-async function apiKey(provider: "openrouter" | "openai", env: Record<string, string | undefined>, authFile?: string) {
-  const fromEnv = provider === "openrouter" ? env.OPENROUTER_API_KEY : env.OPENAI_API_KEY
+async function apiKey(env: Record<string, string | undefined>, authFile?: string) {
+  const fromEnv = env.OPENROUTER_API_KEY
   if (fromEnv?.trim()) return fromEnv.trim()
   const file = authFile ?? path.join(Global.Path.data, "auth.json")
   const data = await readAuthFile(file)
-  const entry = data[provider]
+  const entry = data.openrouter
   if (entry && typeof entry === "object" && (entry as { type?: string }).type === "api") {
     const key = (entry as { key?: unknown }).key
     if (typeof key === "string" && key.trim()) return key.trim()

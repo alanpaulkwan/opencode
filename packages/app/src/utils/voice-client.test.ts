@@ -15,14 +15,14 @@ describe("voice client", () => {
         const form = init?.body as FormData
         const file = form.get("file") as File
         calls.push({ url: String(url), headers: init?.headers, filename: file?.name })
-        return Response.json({ text: "  hello from whisper  ", backend: "openrouter", model: "openai/whisper-large-v3-turbo" })
+        return Response.json({ text: "  hello from whisper  ", backend: "openrouter", model: "nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b" })
       },
     })
     expect(result).toEqual({
       ok: true,
       text: "hello from whisper",
       backend: "openrouter",
-      model: "openai/whisper-large-v3-turbo",
+      model: "nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b",
     })
     expect(calls[0]?.url).toBe("http://100.77.34.92:4003/voice/transcribe")
     expect(calls[0]?.filename).toBe("recording.webm")

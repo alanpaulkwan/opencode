@@ -34,21 +34,23 @@ describe("voice transcription", () => {
     expect(payloadError(undefined, "fallback")).toBe("fallback")
   })
 
-  test("defaults to auto routing with the fast OpenRouter whisper model", () => {
+  test("defaults to auto routing with NVIDIA Nemotron streaming ASR", () => {
     const config = voiceConfig({})
     expect(config.backend).toBe("auto")
-    expect(config.openrouterModel).toBe("openai/whisper-large-v3-turbo")
+    expect(config.openrouterModel).toBe("nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b")
     expect(config.localUrl).toBe("http://127.0.0.1:7003")
   })
 
-  test("advertises summer 2026 fast OpenRouter speech models", async () => {
+  test("advertises recent non-OpenAI OpenRouter speech models", async () => {
     const status = await voiceStatus({
       env: {},
       fetch: async () => new Response("down", { status: 503 }),
     })
-    expect(status.models).toContain("openai/whisper-large-v3-turbo")
-    expect(status.models).toContain("openai/gpt-4o-mini-transcribe")
+    expect(status.models).toContain("nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b")
     expect(status.models).toContain("qwen/qwen3-asr-flash-2026-02-10")
+    expect(status.models).toContain("x-ai/grok-stt-1.0")
+    expect(status.models).not.toContain("openai/whisper-large-v3-turbo")
+    expect(status.models).not.toContain("openai/gpt-4o-mini-transcribe")
   })
 
   test("prefers a healthy local sidecar, then OpenRouter", async () => {
@@ -76,7 +78,6 @@ describe("voice transcription", () => {
     expect(status.backends).toEqual([
       { id: "local", ready: true },
       { id: "openrouter", ready: true },
-      { id: "openai", ready: false },
     ])
     const result = await transcribe({ bytes: new Uint8Array([1, 2, 3]), filename: "clip.webm" }, runtime)
     expect(result.ok).toBe(true)
@@ -118,26 +119,25 @@ describe("voice transcription", () => {
     })
   })
 
-  test("falls through to OpenAI when the sidecar and OpenRouter are unavailable", async () => {
+  test("ignores OpenAI keys and does not call api.openai.com", async () => {
     const authFile = path.join(await mkdtemp(path.join(tmpdir(), "opencode-voice-")), "auth.json")
     await writeFile(authFile, JSON.stringify({ openai: { type: "api", key: "sk-test" } }))
     const runtime: VoiceRuntime = {
-      env: {},
+      env: { OPENAI_API_KEY: "sk-env" },
       authFile,
       fetch: async (input) => {
         const url = String(input)
         if (url.endsWith("/health")) return new Response("nope", { status: 503 })
-        if (url.includes("api.openai.com")) return Response.json({ text: "from gpt-4o-mini-transcribe" })
         throw new Error(`unexpected ${url}`)
       },
     }
     const result = await transcribe({ bytes: new Uint8Array([4, 5]), filename: "talk.webm" }, runtime)
-    expect(result).toEqual({
-      ok: true,
-      text: "from gpt-4o-mini-transcribe",
-      backend: "openai",
-      model: "gpt-4o-mini-transcribe",
-    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.status).toBe(503)
+      expect(result.error).toContain("OPENROUTER_API_KEY")
+      expect(result.error).not.toContain("OpenAI")
+    }
   })
 
   test("rejects empty audio before calling a provider", async () => {
