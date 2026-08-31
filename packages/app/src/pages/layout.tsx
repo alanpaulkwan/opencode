@@ -869,7 +869,6 @@ export default function LegacyLayout(props: ParentProps) {
   }
 
   async function archiveSession(session: Session) {
-    if ((await serverSDK().protocol) !== "v1") return
     const [store, setStore] = serverSync().child(session.directory)
     const sessions = store.session ?? []
     const index = sessions.findIndex((s) => s.id === session.id)
@@ -1476,8 +1475,7 @@ export default function LegacyLayout(props: ParentProps) {
       return
     }
 
-    if ((await serverSDK().protocol) === "v1")
-      await Promise.all(
+    await Promise.all(
         sessions
           .filter((session) => session.time.archived === undefined)
           .map((session) =>

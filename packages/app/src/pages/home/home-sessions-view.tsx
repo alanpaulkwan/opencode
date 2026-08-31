@@ -456,9 +456,8 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
       </button>
       <div
         class={`
-          hover-reveal absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
+          absolute right-1.5 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1
           max-md:static max-md:translate-y-0 max-md:pr-1.5
-          group-hover/session:opacity-100 focus-within:opacity-100
         `}
       >
         <Show when={props.canArchiveSession()}>

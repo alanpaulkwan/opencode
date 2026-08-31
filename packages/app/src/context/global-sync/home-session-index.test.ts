@@ -113,6 +113,21 @@ describe("Home V2 session index", () => {
     expect(retained.filter((item) => item.directory === "/two")).toHaveLength(10)
   })
 
+  test("drops a root from the Home list when it is archived", () => {
+    const initial = parseHomeSessionIndex([session({ id: "keep" }), session({ id: "gone" })])
+    const archived = {
+      ...initial[1]!,
+      time: { ...initial[1]!.time, archived: 9 },
+    }
+
+    expect(
+      applyHomeSessionEvent(initial, {
+        type: "session.updated",
+        properties: { sessionID: archived.id, info: archived },
+      }).map((item) => item.id),
+    ).toEqual(["keep"])
+  })
+
   test("replays session events over the loaded index", () => {
     const initial = parseHomeSessionIndex([session({ id: "old" })])
     const created = { ...initial[0], id: "new", slug: "new", title: "new", time: { created: 2, updated: 2 } }

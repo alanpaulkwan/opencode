@@ -83,16 +83,6 @@ export function createHomeSessionsController(home: HomeController) {
     refetchOnMount: true,
     refetchOnReconnect: true,
   }))
-  const archiveSupport = useQuery(() => ({
-    queryKey: ["home", "session-archive-support", home.selection.value().server],
-    queryFn: async () => {
-      const ctx = home.server.focusedContext()
-      if (!ctx) return false
-      return (await ctx.sdk.protocol) === "v1"
-    },
-    enabled: !!home.server.focusedContext(),
-    initialData: false,
-  }))
   const indexedSessions = createMemo(() =>
     retainHomeSessions(
       homeSessions().sessions(sessionLoad.data, sessionEventLoad.data),
@@ -191,7 +181,7 @@ export function createHomeSessionsController(home: HomeController) {
       showProjectName: () => !home.project.selected(),
       server: () => home.selection.value().server,
       canCreate: () => !!home.project.newSession(),
-      canArchive: () => archiveSupport.data,
+      canArchive: () => !!home.server.focusedContext(),
       create: home.project.openNewSession,
       open: (session: Session, options?: OpenSessionOptions) => {
         const directoryKey = pathKey(session.directory)
@@ -224,7 +214,7 @@ export function createHomeSessionsController(home: HomeController) {
         const ctx = home.server.focusedContext()
         if (!conn || !ctx) return
         const [, setStore] = ctx.sync.child(session.directory)
-        if ((await ctx.sdk.protocol) !== "v1") return
+        const archivedAt = Date.now()
         await archiveHomeSession({
           server: ServerConnection.key(conn),
           session,
@@ -232,15 +222,23 @@ export function createHomeSessionsController(home: HomeController) {
             ctx.sdk.client.session.update({
               sessionID,
               directory: session.directory,
-              time: { archived: Date.now() },
+              time: { archived: archivedAt },
             }),
-          remove: () =>
+          remove: () => {
             setStore(
               produce((draft) => {
                 const match = Binary.search(draft.session, session.id, (item) => item.id)
                 if (match.found) draft.session.splice(match.index, 1)
               }),
-            ),
+            )
+            homeSessions().apply({
+              type: "session.updated",
+              properties: {
+                sessionID: session.id,
+                info: { ...session, time: { ...session.time, archived: archivedAt } },
+              },
+            })
+          },
           onError: (cause) =>
             showToast({
               title: language.t("common.requestFailed"),
