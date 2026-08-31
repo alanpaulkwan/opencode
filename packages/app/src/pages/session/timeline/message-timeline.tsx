@@ -35,6 +35,8 @@ import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
+import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { DialogFooter, DialogHeader, DialogTitleGroup, DialogV2 } from "@opencode-ai/ui/v2/dialog-v2"
 import { InlineInput } from "@opencode-ai/ui/inline-input"
@@ -63,7 +65,7 @@ import { SessionContextUsage } from "@/components/session-context-usage"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { useSessionKey } from "@/pages/session/session-layout"
-import { useSessionArchive } from "@/pages/session/session-archive"
+import { useSessionArchive, useSessionTileBridge } from "@/pages/session/session-archive"
 import { useServerSDK } from "@/context/server-sdk"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
@@ -293,6 +295,7 @@ export function MessageTimeline(props: {
 
   const [listRoot, setListRoot] = createSignal<HTMLDivElement>()
   const sessionID = createMemo(() => params.id)
+  useSessionTileBridge(sessionID)
   const sessionStatus = createMemo(() => {
     const id = sessionID()
     if (!id) return idle
@@ -1533,6 +1536,34 @@ export function MessageTimeline(props: {
                       buttonAppearance={settings.general.newLayoutDesigns() ? "v2" : "default"}
                     />
                     <Show when={!parentID()}>
+                      <Show
+                        when={settings.general.newLayoutDesigns()}
+                        fallback={
+                          <Tooltip value={language.t("common.archive")} placement="bottom">
+                            <IconButton
+                              icon="archive"
+                              variant="ghost"
+                              class="size-6 rounded-md"
+                              aria-label={language.t("common.archive")}
+                              onClick={() => void sessionArchive.archive(id)}
+                            />
+                          </Tooltip>
+                        }
+                      >
+                        <TooltipV2
+                          class="flex shrink-0 items-center"
+                          placement="bottom"
+                          value={language.t("common.archive")}
+                        >
+                          <IconButtonV2
+                            variant="ghost-muted"
+                            size="large"
+                            icon={<IconV2 name="archive" />}
+                            aria-label={language.t("common.archive")}
+                            onClick={() => void sessionArchive.archive(id)}
+                          />
+                        </TooltipV2>
+                      </Show>
                       <Show
                         when={settings.general.newLayoutDesigns()}
                         fallback={
