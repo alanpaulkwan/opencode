@@ -17,6 +17,21 @@ for `*.ts.net`.
 That hostname is HTTPS because Tailscale Serve terminates TLS on **443**
 (Let’s Encrypt) and proxies to `http://100.77.34.92:4010`.
 
+## Multiple apps on the same hostname
+
+Yes. Tailscale Serve can mount **path prefixes** on the same certificate:
+
+```bash
+# more specific paths first; `/` is the catch-all
+tailscale serve --bg --https=443 /other http://100.77.34.92:OTHER
+tailscale serve --bg --https=443 /      http://100.77.34.92:4010
+```
+
+Right now **only** `/` is registered, so the entire host is OpenCode. Adding
+another prefix (for example `/4003`) would share the same HTTPS name without
+Funnel. Client-side OpenCode routes still live under `/`; pick prefixes that
+do not collide with the SPA (`/voice` is already used by this instance).
+
 ## Why `https://poweredge:4010` does not work
 
 Two separate failures, both expected:

@@ -424,6 +424,7 @@ export const dict = {
   "prompt.action.stop": "停止",
   "prompt.action.voice": "语音输入",
   "prompt.action.voice.stop": "停止录音",
+  "prompt.action.voice.recording": "正在录音",
   "prompt.action.voice.transcribing": "正在转录…",
   "command.prompt.voice": "语音输入",
   "prompt.toast.voice.failed.title": "无法转录音频",

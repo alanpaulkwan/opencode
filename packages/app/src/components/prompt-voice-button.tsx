@@ -5,7 +5,7 @@ import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
-import { createSignal, onCleanup, Show } from "solid-js"
+import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useServer } from "@/context/server"
 import { showToast } from "@/utils/toast"
@@ -19,6 +19,12 @@ import {
 
 type VoiceState = "idle" | "recording" | "transcribing"
 
+function elapsedClock(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const rest = seconds % 60
+  return `${minutes}:${rest.toString().padStart(2, "0")}`
+}
+
 export function PromptVoiceButton(props: {
   variant: "v1" | "v2"
   disabled?: boolean
@@ -30,6 +36,7 @@ export function PromptVoiceButton(props: {
   const language = useLanguage()
   const server = useServer()
   const [state, setState] = createSignal<VoiceState>("idle")
+  const [elapsed, setElapsed] = createSignal(0)
   let recorder: MediaRecorder | undefined
   let chunks: Blob[] = []
   let holdTimer: number | undefined
@@ -41,6 +48,22 @@ export function PromptVoiceButton(props: {
     if (state() === "transcribing") return language.t("prompt.action.voice.transcribing")
     return language.t("prompt.action.voice")
   }
+
+  const statusText = () => {
+    if (state() === "recording") return `${language.t("prompt.action.voice.recording")} ${elapsedClock(elapsed())}`
+    if (state() === "transcribing") return language.t("prompt.action.voice.transcribing")
+    return ""
+  }
+
+  createEffect(() => {
+    if (state() !== "recording") {
+      setElapsed(0)
+      return
+    }
+    const started = Date.now()
+    const id = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 250)
+    onCleanup(() => window.clearInterval(id))
+  })
 
   const stopTracks = () => {
     stream?.getTracks().forEach((track) => track.stop())
@@ -162,24 +185,67 @@ export function PromptVoiceButton(props: {
   const busy = () => state() === "transcribing"
 
   return (
-    <Show
-      when={props.variant === "v2"}
-      fallback={
-        <TooltipKeybind placement="top" title={label()} keybind={props.keybind ?? ""}>
-          <IconButton
+    <div class="flex min-w-0 items-center gap-1.5" data-voice-state={state()}>
+      <Show
+        when={props.variant === "v2"}
+        fallback={
+          <TooltipKeybind placement="top" title={label()} keybind={props.keybind ?? ""}>
+            <IconButton
+              data-action="prompt-voice"
+              type="button"
+              icon="microphone"
+              variant={recording() ? "primary" : "ghost"}
+              class="size-8"
+              classList={{
+                "text-icon-critical-base ring-2 ring-icon-critical-base/70 ring-offset-1": recording(),
+                "opacity-60": busy(),
+              }}
+              disabled={props.disabled || busy()}
+              aria-label={label()}
+              aria-pressed={recording()}
+              onClick={(event) => {
+                if (held) {
+                  held = false
+                  event.preventDefault()
+                  return
+                }
+                toggle()
+              }}
+              onPointerDown={onPointerDown}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+            />
+          </TooltipKeybind>
+        }
+      >
+        <TooltipV2
+          placement="top"
+          value={
+            <>
+              {label()}
+              <Show when={(props.keybindParts ?? []).length > 0}>
+                <KeybindV2 keys={props.keybindParts ?? []} variant="neutral" />
+              </Show>
+            </>
+          }
+        >
+          <IconButtonV2
             data-action="prompt-voice"
             type="button"
-            icon="microphone"
-            variant={recording() ? "primary" : "ghost"}
-            class="size-8"
-            classList={{ "text-icon-critical-base": recording(), "opacity-60": busy() }}
+            icon={<IconV2 name="microphone" />}
+            variant={recording() ? "ghost" : "ghost-muted"}
+            size="large"
             disabled={props.disabled || busy()}
             aria-label={label()}
             aria-pressed={recording()}
+            classList={{
+              "text-v2-icon-icon-critical ring-2 ring-current ring-offset-1 ring-offset-transparent": recording(),
+            }}
             onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
               if (held) {
                 held = false
-                event.preventDefault()
                 return
               }
               toggle()
@@ -188,45 +254,30 @@ export function PromptVoiceButton(props: {
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
           />
-        </TooltipKeybind>
-      }
-    >
-      <TooltipV2
-        placement="top"
-        value={
-          <>
-            {label()}
-            <Show when={(props.keybindParts ?? []).length > 0}>
-              <KeybindV2 keys={props.keybindParts ?? []} variant="neutral" />
-            </Show>
-          </>
-        }
-      >
-        <IconButtonV2
-          data-action="prompt-voice"
-          type="button"
-          icon={<IconV2 name="microphone" />}
-          variant={recording() ? "ghost" : "ghost-muted"}
-          size="large"
-          disabled={props.disabled || busy()}
-          aria-label={label()}
-          aria-pressed={recording()}
-          classList={{ "text-v2-icon-icon-critical": recording() }}
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            if (held) {
-              held = false
-              return
-            }
-            toggle()
+        </TooltipV2>
+      </Show>
+      <Show when={state() !== "idle"}>
+        <span
+          class="flex min-w-0 items-center gap-1 text-xs font-medium whitespace-nowrap"
+          classList={{
+            "text-icon-critical-base text-v2-icon-icon-critical": recording(),
+            "text-text-weak text-v2-text-text-muted": busy(),
           }}
-          onPointerDown={onPointerDown}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-        />
-      </TooltipV2>
-    </Show>
+          aria-live="polite"
+        >
+          <Show when={busy()}>
+            <span
+              class="inline-block size-3 shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin"
+              aria-hidden="true"
+            />
+          </Show>
+          <Show when={recording()}>
+            <span class="inline-block size-2 shrink-0 rounded-full bg-current animate-pulse" aria-hidden="true" />
+          </Show>
+          {statusText()}
+        </span>
+      </Show>
+    </div>
   )
 }
 

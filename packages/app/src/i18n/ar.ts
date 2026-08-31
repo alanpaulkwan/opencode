@@ -387,6 +387,7 @@ export const dict = {
   "prompt.action.stop": "إيقاف",
   "prompt.action.voice": "إدخال صوتي",
   "prompt.action.voice.stop": "إيقاف التسجيل",
+  "prompt.action.voice.recording": "جارٍ التسجيل",
   "prompt.action.voice.transcribing": "جارٍ التفريغ الصوتي...",
   "command.prompt.voice": "إدخال صوتي",
   "prompt.toast.voice.failed.title": "تعذر تفريغ الصوت",

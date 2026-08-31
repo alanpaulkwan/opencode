@@ -311,6 +311,7 @@ export const dict = {
   "prompt.action.stop": "Stop",
   "prompt.action.voice": "Voice input",
   "prompt.action.voice.stop": "Stop recording",
+  "prompt.action.voice.recording": "Recording",
   "prompt.action.voice.transcribing": "Transcribing...",
   "command.prompt.voice": "Voice input",
   "prompt.toast.voice.failed.title": "Couldn't transcribe audio",
