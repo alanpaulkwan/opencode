@@ -1,5 +1,4 @@
 import { useNavigate } from "@solidjs/router"
-import { onCleanup } from "solid-js"
 import { produce } from "solid-js/store"
 import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
 import { useLanguage } from "@/context/language"
@@ -10,10 +9,6 @@ import { errorMessage } from "@/pages/layout/helpers"
 import { useSessionKey } from "@/pages/session/session-layout"
 import { legacySessionHref, requireServerKey, sessionHref } from "@/utils/session-route"
 import { showToast } from "@/utils/toast"
-
-export const TILE_MESSAGE_SOURCE = "opencode-tile"
-export const TILE_ARCHIVE_REQUEST = "archive"
-export const TILE_ARCHIVE_REPLY = "archived"
 
 export function useSessionArchive() {
   const language = useLanguage()
@@ -75,26 +70,4 @@ export function useSessionArchive() {
   }
 
   return { archive, navigateAfterRemoval }
-}
-
-// Lets a host window (for example the tile manager) ask this session view to
-// archive the conversation it is showing, and reports the outcome back.
-export function useSessionTileBridge(sessionID: () => string | undefined) {
-  const { archive } = useSessionArchive()
-
-  const onMessage = (event: MessageEvent) => {
-    if (event.origin !== window.location.origin) return
-    const data = event.data as { source?: unknown; type?: unknown } | null
-    if (!data || data.source !== TILE_MESSAGE_SOURCE || data.type !== TILE_ARCHIVE_REQUEST) return
-    const id = sessionID()
-    if (!id) return
-    const source = event.source
-    if (!source) return
-    void archive(id).then((ok) => {
-      ;(source as Window).postMessage({ source: TILE_MESSAGE_SOURCE, type: TILE_ARCHIVE_REPLY, ok }, event.origin)
-    })
-  }
-
-  window.addEventListener("message", onMessage)
-  onCleanup(() => window.removeEventListener("message", onMessage))
 }
