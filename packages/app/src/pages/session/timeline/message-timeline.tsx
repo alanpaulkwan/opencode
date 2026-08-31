@@ -1442,7 +1442,7 @@ export function MessageTimeline(props: {
               "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered && !settings.general.newLayoutDesigns(),
             }}
           >
-            <div class="h-12 w-full flex items-center justify-between gap-2">
+            <div class="min-h-12 w-full flex items-center justify-between gap-2">
               <div
                 classList={{
                   "flex items-center gap-1 min-w-0 flex-1": true,
@@ -1474,7 +1474,7 @@ export function MessageTimeline(props: {
                         <h1
                           data-slot="session-title-child"
                           classList={{
-                            "truncate text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-base": true,
+                            "truncate min-w-0 max-w-full text-[13px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-base": true,
                             "w-fit rounded-[6px] px-2 py-1 hover:bg-v2-overlay-simple-overlay-hover":
                               settings.general.newLayoutDesigns(),
                             "grow-1 min-w-0": !settings.general.newLayoutDesigns(),
@@ -1526,9 +1526,9 @@ export function MessageTimeline(props: {
                 {(id) => (
                   <div
                     classList={{
-                      "shrink-0 flex items-center": true,
-                      "gap-2": settings.general.newLayoutDesigns(),
-                      "gap-3": !settings.general.newLayoutDesigns(),
+                      "shrink-0 flex flex-wrap items-center justify-end": true,
+                      "gap-1 md:gap-2": settings.general.newLayoutDesigns(),
+                      "gap-2 md:gap-3": !settings.general.newLayoutDesigns(),
                     }}
                   >
                     <SessionContextUsage
@@ -1539,7 +1539,7 @@ export function MessageTimeline(props: {
                       <Show
                         when={settings.general.newLayoutDesigns()}
                         fallback={
-                          <Tooltip value={language.t("common.archive")} placement="bottom">
+                          <Tooltip value={language.t("common.archive")} placement="bottom" class="hidden md:flex">
                             <IconButton
                               icon="archive"
                               variant="ghost"
@@ -1551,7 +1551,7 @@ export function MessageTimeline(props: {
                         }
                       >
                         <TooltipV2
-                          class="flex shrink-0 items-center"
+                          class="hidden md:flex shrink-0 items-center"
                           placement="bottom"
                           value={language.t("common.archive")}
                         >

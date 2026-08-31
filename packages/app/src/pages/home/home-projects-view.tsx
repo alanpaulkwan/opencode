@@ -212,7 +212,7 @@ function HomeServerRow(props: {
     <div class="group/server relative flex h-7 min-w-0 items-center rounded-[6px]">
       <HomeProjectNavButton
         type="button"
-        class="pr-16 disabled:opacity-60"
+        class="pr-16 max-md:pr-2 disabled:opacity-60"
         data-selected={props.selected ? "" : undefined}
         disabled={!healthy()}
         onClick={() => props.onFocusServer(props.server)}
@@ -269,6 +269,7 @@ function HomeServerRow(props: {
       <div
         class={`
           hover-reveal absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1
+          max-md:static max-md:translate-y-0
           group-hover/server:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100
         `}
         data-menu={props.contextMenuOpen(contextMenuID())}
@@ -484,7 +485,7 @@ function HomeProjectRow(
       <HomeProjectNavButton
         type="button"
         data-component="home-project-row"
-        class="pr-16 disabled:opacity-60"
+        class="pr-16 max-md:pr-2 disabled:opacity-60"
         classList={{
           "bg-v2-background-bg-layer-01 text-v2-text-text-base": sortable.isDragSource(),
         }}
@@ -525,6 +526,7 @@ function HomeProjectRow(
       <div
         class={`
           hover-reveal absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1
+          max-md:static max-md:translate-y-0
           group-hover/project:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100
         `}
         data-menu={props.contextMenuOpen(contextMenuID())}
@@ -603,7 +605,7 @@ function HomeProjectNavButton(props: JSX.ButtonHTMLAttributes<HTMLButtonElement>
     <button
       {...rest}
       class={`
-        flex h-7 min-w-0 w-full shrink-0 cursor-default items-center gap-2 rounded-[6px] bg-transparent px-1.5 text-left
+        flex h-7 min-w-0 w-full flex-1 cursor-default items-center gap-2 rounded-[6px] bg-transparent px-1.5 text-left
         text-v2-text-text-muted [font-weight:440] transition-[background-color,color,box-shadow] duration-[120ms] ease-in-out
         hover:bg-v2-background-bg-layer-01 hover:text-v2-text-text-base
         data-[selected]:bg-v2-background-bg-layer-03 data-[selected]:text-v2-text-text-base

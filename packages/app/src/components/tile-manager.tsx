@@ -1,5 +1,6 @@
 import { For, Show, createContext, createSignal, useContext, type JSX, type ParentProps } from "solid-js"
 import { createStore, produce } from "solid-js/store"
+import { createMediaQuery } from "@solid-primitives/media"
 import { useLanguage } from "@/context/language"
 import { TILE_ARCHIVE_REPLY, TILE_ARCHIVE_REQUEST, TILE_MESSAGE_SOURCE } from "@/pages/session/session-archive"
 
@@ -347,6 +348,7 @@ function LeafView(props: { node: TileLeaf }) {
 }
 
 export function TileManager(props: ParentProps) {
+  const isDesktop = createMediaQuery("(min-width: 768px)")
   const [state, setState] = createStore({ root: loadRoot() })
   const [drag, setDrag] = createSignal<DragState | null>(null)
   const leafEls = new Map<string, HTMLElement>()
@@ -476,6 +478,12 @@ export function TileManager(props: ParentProps) {
   }
 
   return (
+    <Show
+      when={isDesktop()}
+      fallback={
+        <div class="relative flex-1 min-h-0 min-w-0 flex flex-col w-full h-full overflow-hidden">{props.children}</div>
+      }
+    >
     <TileContext.Provider value={value}>
       <div class="relative flex-1 min-h-0 min-w-0 flex flex-col w-full h-full">
         <TreeView node={state.root} />
@@ -500,5 +508,6 @@ export function TileManager(props: ParentProps) {
         </Show>
       </div>
     </TileContext.Provider>
+    </Show>
   )
 }

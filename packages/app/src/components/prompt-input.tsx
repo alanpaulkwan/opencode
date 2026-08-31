@@ -138,7 +138,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   let savedCursor: number | null = null
 
   const mirror = { input: false }
-  const inset = 56
+  const inset = 96
   const space = `${inset}px`
 
   const scrollCursorIntoView = () => {

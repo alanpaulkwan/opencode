@@ -113,6 +113,16 @@
   padding-inline-end: 0;
 }
 
+@media (hover: none) {
+  [data-titlebar-tab]:not([data-editing="true"]) [data-slot="tab-link"] {
+    padding-inline-end: 22px;
+  }
+
+  [data-titlebar-tab][data-title-overflow="true"]:not([data-editing="true"]) [data-slot="tab-link"] {
+    --tab-title-fade-offset: 24px;
+  }
+}
+
 [data-titlebar-tab] [data-slot="tab-title"] {
   min-width: 0;
 }

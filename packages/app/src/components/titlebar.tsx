@@ -474,7 +474,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                 <TooltipV2
                   placement="bottom"
                   value={language.t("command.workspaceTerminal.open")}
-                  class="shrink-0"
+                  class="hidden md:flex shrink-0"
                 >
                   <IconButtonV2
                     type="button"
@@ -488,6 +488,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                 </TooltipV2>
                 <TooltipV2
                   placement="bottom"
+                  class="shrink-0"
                   value={
                     <>
                       {language.t("command.session.new")}
@@ -505,7 +506,6 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                     aria-label={language.t("command.session.new")}
                   />
                 </TooltipV2>
-                <div class="flex-1" />
                 <TitlebarV2Right state={v2RightState()} />
               </div>
             )

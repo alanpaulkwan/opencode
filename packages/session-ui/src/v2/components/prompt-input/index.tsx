@@ -196,9 +196,9 @@ export function PromptInputV2(props: PromptInputV2Props) {
           </Show>
         </div>
 
-        <div class="flex h-11 items-center px-2">
+        <div class="flex min-h-11 flex-wrap items-center justify-between gap-x-1 gap-y-1 px-2">
           <div
-            class="flex min-w-0 flex-1 items-center gap-1"
+            class="flex min-w-0 flex-1 items-center gap-1 overflow-hidden"
             aria-hidden={state.mode === "shell"}
             inert={state.mode === "shell" ? true : undefined}
             style={buttons()}
@@ -255,7 +255,7 @@ export function PromptInputV2(props: PromptInputV2Props) {
               )}
             </Show>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="ml-auto flex shrink-0 items-center gap-1">
             {props.extraActions}
             <PromptInputV2SubmitButton
               mode={state.mode}
@@ -577,7 +577,7 @@ export function PromptInputV2Select(props: {
           as={ButtonV2}
           variant="ghost-muted"
           size="normal"
-          class={`max-w-[220px] justify-start ![font-weight:440] ${props.class ?? ""}`}
+          class={`min-w-0 max-w-[220px] max-md:max-w-[7.5rem] justify-start ![font-weight:440] ${props.class ?? ""}`}
           aria-label={props.title}
         >
           {props.currentIcon}

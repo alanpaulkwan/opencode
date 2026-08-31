@@ -49,7 +49,7 @@ function SessionTabSlot(props: {
       data-titlebar-tab-slot
       data-tab-key={props.id}
       data-active={props.active()}
-      class="relative flex w-56 min-w-7 max-w-56 flex-shrink"
+      class="relative flex w-40 min-w-40 max-w-40 shrink-0 md:w-56 md:min-w-7 md:max-w-56 md:flex-shrink"
     >
       <TabNavItem
         ref={(el) => {
@@ -192,7 +192,7 @@ function DraftTabSlot(props: {
       data-titlebar-tab-slot
       data-tab-key={props.id}
       data-active={props.active()}
-      class="relative flex w-56 min-w-7 max-w-56 flex-shrink"
+      class="relative flex w-40 min-w-40 max-w-40 shrink-0 md:w-56 md:min-w-7 md:max-w-56 md:flex-shrink"
     >
       <DraftTabItem
         ref={(el) => {
@@ -288,7 +288,7 @@ export function TitlebarTabStrip(props: {
   })
 
   return (
-    <div data-slot="titlebar-tabs" class="relative min-w-0">
+    <div data-slot="titlebar-tabs" class="relative min-w-0 flex-1">
       <div
         data-slot="titlebar-tabs-scroll"
         class="flex min-w-0 flex-row items-center gap-1.5 overflow-x-auto no-scrollbar [app-region:no-drag]"

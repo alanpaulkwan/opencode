@@ -428,8 +428,8 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
         type="button"
         data-component="home-session-row"
         class={`
-          flex h-10 min-w-0 w-full flex-1 shrink-0 cursor-default items-center gap-2 rounded-[6px] border-0
-          bg-transparent py-3 pl-3 pr-[4.75rem] text-left text-v2-text-text-muted [font-weight:530]
+          flex h-10 min-w-0 w-full flex-1 cursor-default items-center gap-2 rounded-[6px] border-0
+          bg-transparent py-3 pl-3 pr-[4.75rem] max-md:pr-2 text-left text-v2-text-text-muted [font-weight:530]
           transition-[background-color,color,box-shadow] duration-[120ms] ease-in-out
           hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none
         `}
@@ -457,6 +457,7 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
       <div
         class={`
           hover-reveal absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1
+          max-md:static max-md:translate-y-0 max-md:pr-1.5
           group-hover/session:opacity-100 focus-within:opacity-100
         `}
       >
