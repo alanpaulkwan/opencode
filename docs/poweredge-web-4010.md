@@ -1,59 +1,62 @@
 # Poweredge OpenCode web on :4010
 
-This fork’s test UI (whisper / archive / mobile chrome) listens only on the
-Tailscale IPv4 address, port **4010**. Production stock OpenCode stays on
-**:4003** and must not be restarted for this work.
+This fork’s test UI (whisper / archive / mobile chrome) is the **4010**
+instance. Production stock OpenCode stays on **:4003** and must not be
+restarted for this work.
 
 ## Open this URL
 
 ```
-https://poweredge.tail17f01.ts.net
+https://poweredge.tail17f01.ts.net:4010
 ```
 
-No port. Same basic-auth login as the :4003 UI. Phone or laptop must be on the
-same Tailscale tailnet, with Tailscale connected, and **without** an HTTP proxy
-for `*.ts.net`.
+Same basic-auth login as the :4003 UI. Phone or laptop must be on the same
+Tailscale tailnet, with Tailscale connected, and **without** an HTTP proxy for
+`*.ts.net`.
 
-That hostname is HTTPS because Tailscale Serve terminates TLS on **443**
-(Let’s Encrypt) and proxies to `http://100.77.34.92:4010`.
+That URL is HTTPS because Tailscale Serve terminates TLS on **4010** (Let’s
+Encrypt for `poweredge.tail17f01.ts.net`) and proxies to
+`http://127.0.0.1:4010`. The bun process binds loopback only so Tailscale can
+own the tailnet address on port 4010.
+
+Bare `https://poweredge.tail17f01.ts.net` (port 443) is no longer this UI. It
+returns a one-line pointer to `:4010`, and 443 is free for another app.
 
 ## Multiple apps on the same hostname
 
-Yes. Tailscale Serve can mount **path prefixes** on the same certificate:
+Yes. Use **separate HTTPS ports**, not path prefixes, for a second OpenCode
+(the SPA loads `/assets` from the host root).
 
 ```bash
-# more specific paths first; `/` is the catch-all
-tailscale serve --bg --https=443 /other http://100.77.34.92:OTHER
-tailscale serve --bg --https=443 /      http://100.77.34.92:4010
+tailscale serve --bg --https=4010 http://127.0.0.1:4010
+# example: stock UI on another TLS port
+# tailscale serve --bg --https=8443 http://100.77.34.92:4003
 ```
 
-Right now **only** `/` is registered, so the entire host is OpenCode. Adding
-another prefix (for example `/4003`) would share the same HTTPS name without
-Funnel. Client-side OpenCode routes still live under `/`; pick prefixes that
-do not collide with the SPA (`/voice` is already used by this instance).
+Path prefixes on one port are fine for non-SPA apps (`/grafana`). Do not mount
+this OpenCode under `/4010` on 443.
+
+Serve (tailnet only) can use ports other than 443. Funnel (public internet)
+only allows 443, 8443, and 10000 — do not turn Funnel on.
+
+If Chrome still uses an HTTP proxy, `CONNECT` to non-443 `*.ts.net` ports can
+fail with `ERR_TUNNEL_CONNECTION_FAILED`. Bypass the proxy for `*.ts.net`.
+Phones on Tailscale usually do not have that problem.
 
 ## Why `https://poweredge:4010` does not work
 
-Two separate failures, both expected:
+The certificate name is only the MagicDNS FQDN. Let’s Encrypt issued
+`CN=poweredge.tail17f01.ts.net`. Short name `poweredge` is not on the cert.
 
-1. **Port 4010 speaks HTTP, not TLS.** Typing `https://` starts a TLS handshake.
-   The bun process on 4010 answers with plain HTTP (`wrong version number`).
-2. **The certificate name is only the MagicDNS FQDN.** Let’s Encrypt issued
-   `CN=poweredge.tail17f01.ts.net`. Short name `poweredge` is not on the cert, so
-   even `https://poweredge/` (implied 443) fails the handshake.
+Use `https://poweredge.tail17f01.ts.net:4010`, not `https://poweredge:4010`.
 
-`http://poweredge:4010` can reach the page on the tailnet, but the browser does
-not treat that as a secure context, so **getUserMedia / microphone stays
-blocked**.
-
-Do not use `https://poweredge.tail17f01.ts.net:8443`. That mixes MagicDNS with
-the optional self-signed bun proxy on **8443**. Chrome then often reports
-`ERR_TUNNEL_CONNECTION_FAILED` because the system HTTP proxy cannot CONNECT
-into the tailnet.
+Do not use `https://poweredge.tail17f01.ts.net:8443` for this UI. That mixes
+MagicDNS with the optional self-signed bun proxy on **8443**.
 
 ## Voice dictation
 
-1. Open `https://poweredge.tail17f01.ts.net` and a session so the composer shows.
+1. Open `https://poweredge.tail17f01.ts.net:4010` and a session so the composer
+   shows.
 2. Use the microphone button next to the prompt (click to toggle, or hold to
    talk and release).
 3. Allow microphone access when the browser asks.
@@ -91,15 +94,6 @@ Cloud STT is wired but **not ready** on this instance (no ElevenLabs / Deepgram
 order is local → ElevenLabs `scribe_v2` → Deepgram `nova-3` → OpenRouter
 `nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b`.
 
-Tiny is the smallest Whisper checkpoint. It is fast and will miss words more
-often than `small` / `distil-large-v3`. Swap live without restarting OpenCode:
-
-```bash
-curl -X POST http://127.0.0.1:7003/reload \
-  -H 'Content-Type: application/json' \
-  -d '{"model":"small","compute_type":"int8"}'
-```
-
 ### Chat (the session)
 
 Default model in `~/.config/opencode/opencode.jsonc` is **`openai/gpt-5.6-sol`**,
@@ -116,14 +110,16 @@ Grok Build (`xai/grok-build-0.1`), MiniMax M3, GLM 5.2.
 | Mic / dictation and `/voice/*` | Yes | No |
 | One-click archive (`time.archived`, not delete) | Yes | No matching header/home buttons |
 | Mobile toolbar / tab reflow | Yes | No |
+| Working status in the open session (header + composer) | Yes | Sidebar list only |
 | Tool-result images, PDF/notebook preview, workspace terminals | Yes (this fork) | Not in that binary |
 | Tiled pane manager | Removed (blocked New session) | Never had it |
 
 ## Ops notes
 
-- Bind only `100.77.34.92` (Tailscale IPv4). Not LAN, not localhost, not Funnel.
+- bun HTTP: `127.0.0.1:4010` only. Tailscale Serve TLS: tailnet `:4010`.
+  Not LAN, not Funnel. Production `:4003` stays on `100.77.34.92:4003`.
 - Launch: `/tmp/opencode-4010/launch` (GNU screen `opencode-us-4010`).
-- HTTPS: `tailscale serve --bg --https=443 http://100.77.34.92:4010` via
+- HTTPS: `tailscale serve --bg --https=4010 http://127.0.0.1:4010` via
   `/tmp/opencode-4010/enable-https.sh`. Never `tailscale funnel`.
 - After UI source changes: `bun run build` in `packages/app`, then
   `bun /tmp/opencode-4010/regen-embed.ts`, then restart **only** the 4010 screen
