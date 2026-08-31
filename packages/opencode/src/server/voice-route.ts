@@ -1,6 +1,6 @@
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { Effect } from "effect"
-import { transcribeRequest, voiceStatus } from "./voice"
+import { transcribeBody, voiceStatus } from "./voice"
 
 export const voiceRoute = HttpRouter.use((router) =>
   Effect.gen(function* () {
@@ -10,11 +10,15 @@ export const voiceRoute = HttpRouter.use((router) =>
       ),
     )
     yield* router.add("POST", "/voice/transcribe", (request: HttpServerRequest.HttpServerRequest) =>
-      Effect.promise(() => {
-        const web = request.source instanceof Request ? request.source : undefined
-        if (!web) return Promise.resolve({ status: 400, body: { error: "invalid request" } })
-        return transcribeRequest(web)
-      }).pipe(Effect.map((result) => HttpServerResponse.jsonUnsafe(result.body, { status: result.status }))),
+      request.arrayBuffer.pipe(
+        Effect.flatMap((bytes) =>
+          Effect.promise(() => transcribeBody(bytes, request.headers["content-type"] ?? "")),
+        ),
+        Effect.map((result) => HttpServerResponse.jsonUnsafe(result.body, { status: result.status })),
+        Effect.catch(() =>
+          Effect.succeed(HttpServerResponse.jsonUnsafe({ error: "invalid request" }, { status: 400 })),
+        ),
+      ),
     )
   }),
 )

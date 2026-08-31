@@ -7,6 +7,7 @@ import {
   payloadError,
   transcriptText,
   transcribe,
+  transcribeBody,
   voiceConfig,
   voiceStatus,
   type VoiceRuntime,
@@ -217,5 +218,30 @@ describe("voice transcription", () => {
       throw new Error("should not fetch")
     } })
     expect(result).toEqual({ ok: false, status: 400, error: "empty audio" })
+  })
+
+  test("parses multipart from raw body bytes when the HTTP source is not a Web Request", async () => {
+    const boundary = "----opencodeVoiceTest"
+    const body = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="file"; filename="recording.webm"\r\n`,
+      `Content-Type: audio/webm\r\n\r\n`,
+      "abc",
+      `\r\n--${boundary}--\r\n`,
+    ].join("")
+    const bytes = new TextEncoder().encode(body).buffer
+    const contentType = `multipart/form-data; boundary=${boundary}`
+    const result = await transcribeBody(bytes, contentType, {
+      fetch: async (input) => {
+        const url = String(input)
+        if (url.endsWith("/health")) return Response.json({ ok: true, loaded: true })
+        if (url.endsWith("/transcribe")) return Response.json({ text: " from reconstructed body " })
+        throw new Error(`unexpected ${url}`)
+      },
+    })
+    expect(result).toEqual({
+      status: 200,
+      body: { text: "from reconstructed body", backend: "local", model: "local", language: undefined },
+    })
   })
 })

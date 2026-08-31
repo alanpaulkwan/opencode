@@ -196,6 +196,21 @@ export async function transcribeRequest(request: Request, runtime: VoiceRuntime 
   }
 }
 
+/** Rebuild a multipart Request from raw bytes. Effect's server source is not a Web Request. */
+export async function transcribeBody(
+  bytes: ArrayBuffer,
+  contentType: string,
+  runtime: VoiceRuntime = {},
+): Promise<{ status: number; body: unknown }> {
+  if (bytes.byteLength === 0) return { status: 400, body: { error: "empty audio" } }
+  const web = new Request("http://opencode.local/voice/transcribe", {
+    method: "POST",
+    headers: { "content-type": contentType || "application/octet-stream" },
+    body: bytes,
+  })
+  return transcribeRequest(web, runtime)
+}
+
 function parseBackend(value: string | undefined): VoiceBackend {
   if (value === "local" || value === "elevenlabs" || value === "deepgram" || value === "openrouter") return value
   return "auto"
