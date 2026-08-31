@@ -73,12 +73,18 @@ uses:
 | Piece | Value |
 |---|---|
 | Backend | local faster-whisper at `127.0.0.1:7003` |
-| Model | **tiny** |
+| Model | **small** (hot-reloaded 2026-08-31; was `tiny`) |
 | Compute | int8 on CPU |
-| Process | `python app.py --port 7003 --host 127.0.0.1 --model tiny --compute int8` |
 
-`run.sh` defaults to `small` if you restart the sidecar without `VOICE_MODEL`.
-The live process was started with `--model tiny`.
+`run.sh` defaults to `small`. The process had been started with `--model tiny`;
+that was a launch choice, not a fidelity recommendation. On this Xeon, `small`
+int8 is the right CPU default. `tiny` is only for weaker boxes. Swap live:
+
+```bash
+curl -X POST http://127.0.0.1:7003/reload \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"small","compute_type":"int8"}'
+```
 
 Cloud STT is wired but **not ready** on this instance (no ElevenLabs / Deepgram
 / OpenRouter keys in the 4010 process). If those keys are added later, auto
