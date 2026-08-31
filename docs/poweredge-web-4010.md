@@ -63,6 +63,46 @@ into the tailnet.
 
 `GET /voice/health` reports which backends are ready.
 
+## Models in use (checked 2026-08-31)
+
+### Speech-to-text (the mic)
+
+The 4010 instance is on **auto**. Only the local sidecar is ready, so dictation
+uses:
+
+| Piece | Value |
+|---|---|
+| Backend | local faster-whisper at `127.0.0.1:7003` |
+| Model | **tiny** |
+| Compute | int8 on CPU |
+| Process | `python app.py --port 7003 --host 127.0.0.1 --model tiny --compute int8` |
+
+`run.sh` defaults to `small` if you restart the sidecar without `VOICE_MODEL`.
+The live process was started with `--model tiny`.
+
+Cloud STT is wired but **not ready** on this instance (no ElevenLabs / Deepgram
+/ OpenRouter keys in the 4010 process). If those keys are added later, auto
+order is local → ElevenLabs `scribe_v2` → Deepgram `nova-3` → OpenRouter
+`nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b`.
+
+Tiny is the smallest Whisper checkpoint. It is fast and will miss words more
+often than `small` / `distil-large-v3`. Swap live without restarting OpenCode:
+
+```bash
+curl -X POST http://127.0.0.1:7003/reload \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"small","compute_type":"int8"}'
+```
+
+### Chat (the session)
+
+Default model in `~/.config/opencode/opencode.jsonc` is **`openai/gpt-5.6-sol`**,
+default agent `build`. The composer can still pick another connected model.
+Named subagents in that config: Grok Composer (`xai/grok-composer-2.5-fast`),
+Grok Build (`xai/grok-build-0.1`), MiniMax M3, GLM 5.2.
+
+:4003 uses the same config file. The mic path above is **4010-only**.
+
 ## What :4010 has that :4003 does not
 
 | | :4010 (this branch) | :4003 (stock `opencode` 1.18.21) |
