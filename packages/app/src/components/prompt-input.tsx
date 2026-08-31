@@ -79,6 +79,7 @@ import { PromptImageAttachments } from "./prompt-input/image-attachments"
 import { PromptDragOverlay } from "./prompt-input/drag-overlay"
 import { promptPlaceholder } from "./prompt-input/placeholder"
 import { PromptVoiceButton } from "@/components/prompt-voice-button"
+import { SessionWorkingStatus } from "@/components/session-working-status"
 import { togglePromptVoice } from "@/utils/voice-recorder"
 import { createPromptInputTransientState } from "./prompt-input/transient-state"
 import { showToast } from "@/utils/toast"
@@ -1585,6 +1586,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             />
 
             <div class="flex items-center gap-1 pointer-events-auto">
+              <SessionWorkingStatus />
               <PromptVoiceButton
                 variant="v1"
                 disabled={store.mode !== "normal"}

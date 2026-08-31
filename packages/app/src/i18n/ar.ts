@@ -390,6 +390,8 @@ export const dict = {
   "prompt.action.voice.recording": "جارٍ التسجيل",
   "prompt.action.voice.transcribing": "جارٍ التفريغ الصوتي...",
   "command.prompt.voice": "إدخال صوتي",
+  "session.status.working": "جارٍ العمل",
+  "session.status.retrying": "جارٍ إعادة المحاولة",
   "prompt.toast.voice.failed.title": "تعذر تفريغ الصوت",
   "prompt.toast.voice.unavailable.title": "الميكروفون غير متاح",
   "prompt.toast.voice.unavailable.description": "يسمح المتصفح بالميكروفون فقط على HTTPS أو localhost.",

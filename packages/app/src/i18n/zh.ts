@@ -427,6 +427,8 @@ export const dict = {
   "prompt.action.voice.recording": "正在录音",
   "prompt.action.voice.transcribing": "正在转录…",
   "command.prompt.voice": "语音输入",
+  "session.status.working": "正在工作",
+  "session.status.retrying": "正在重试",
   "prompt.toast.voice.failed.title": "无法转录音频",
   "prompt.toast.voice.unavailable.title": "无法使用麦克风",
   "prompt.toast.voice.unavailable.description": "浏览器仅允许在 HTTPS 或 localhost 上使用麦克风。",

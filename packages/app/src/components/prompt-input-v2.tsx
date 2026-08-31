@@ -28,6 +28,7 @@ import { createSessionTabs } from "@/pages/session/helpers"
 import { showToast } from "@/utils/toast"
 import { PromptInputV2, type PromptInputV2Suggestion } from "@opencode-ai/session-ui/v2/prompt-input"
 import { PromptVoiceButton } from "@/components/prompt-voice-button"
+import { SessionWorkingStatus } from "@/components/session-working-status"
 import { togglePromptVoice } from "@/utils/voice-recorder"
 import {
   createPromptInputV2Controller,
@@ -61,17 +62,20 @@ export function PromptInputV2Composer(props: PromptInputV2ComposerProps) {
         attachKeybind={command.keybindParts("file.attach")}
         attachShortcut={command.keybind("file.attach")}
         extraActions={
-          <PromptVoiceButton
-            variant="v2"
-            disabled={props.controller.state.mode === "shell"}
-            currentText={() => props.controller.value()}
-            insertText={(text) => {
-              props.controller.addPart({ type: "text", content: text, start: 0, end: 0 })
-              props.controller.restoreFocus()
-            }}
-            keybind={command.keybind("prompt.voice")}
-            keybindParts={command.keybindParts("prompt.voice")}
-          />
+          <>
+            <SessionWorkingStatus />
+            <PromptVoiceButton
+              variant="v2"
+              disabled={props.controller.state.mode === "shell"}
+              currentText={() => props.controller.value()}
+              insertText={(text) => {
+                props.controller.addPart({ type: "text", content: text, start: 0, end: 0 })
+                props.controller.restoreFocus()
+              }}
+              keybind={command.keybind("prompt.voice")}
+              keybindParts={command.keybindParts("prompt.voice")}
+            />
+          </>
         }
         modelControl={
           <PromptInputV2ModelControl

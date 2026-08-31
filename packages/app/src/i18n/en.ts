@@ -314,6 +314,8 @@ export const dict = {
   "prompt.action.voice.recording": "Recording",
   "prompt.action.voice.transcribing": "Transcribing...",
   "command.prompt.voice": "Voice input",
+  "session.status.working": "Working",
+  "session.status.retrying": "Retrying",
   "prompt.toast.voice.failed.title": "Couldn't transcribe audio",
   "prompt.toast.voice.unavailable.title": "Microphone unavailable",
   "prompt.toast.voice.unavailable.description": "The browser only allows the microphone on HTTPS or localhost.",
