@@ -109,6 +109,7 @@ Grok Build (`xai/grok-build-0.1`), MiniMax M3, GLM 5.2.
 |---|---|---|
 | Mic / dictation and `/voice/*` | Yes | No |
 | One-click archive (`time.archived`, not delete) | Yes | No matching header/home buttons |
+| Header Fork (opens the `/fork` message picker) | Yes | `/fork` slash + palette only |
 | Mobile toolbar / tab reflow | Yes | No |
 | Working status in the open session (header + composer) | Yes | Sidebar list only |
 | Tool-result images, PDF/notebook preview, workspace terminals | Yes (this fork) | Not in that binary |

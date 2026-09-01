@@ -55,6 +55,7 @@ import type {
   UserMessage,
 } from "@opencode-ai/sdk/v2"
 import { showToast } from "@/utils/toast"
+import { DialogFork } from "@/components/dialog-fork"
 import { downloadSessionExport, fetchSessionExport, sessionExportFilename } from "@/utils/session-export"
 import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
 import { Popover as KobaltePopover } from "@kobalte/core/popover"
@@ -828,6 +829,10 @@ export function MessageTimeline(props: {
     titleMutation.mutate({ id, title: next })
   }
 
+  const forkSession = () => {
+    dialog.show(() => <DialogFork />)
+  }
+
   const exportSession = async (sessionID: string) => {
     try {
       const data = await fetchSessionExport({
@@ -1540,6 +1545,34 @@ export function MessageTimeline(props: {
                       <Show
                         when={settings.general.newLayoutDesigns()}
                         fallback={
+                          <Tooltip value={language.t("command.session.fork")} placement="bottom" class="hidden md:flex">
+                            <IconButton
+                              icon="fork"
+                              variant="ghost"
+                              class="size-6 rounded-md"
+                              aria-label={language.t("command.session.fork")}
+                              onClick={forkSession}
+                            />
+                          </Tooltip>
+                        }
+                      >
+                        <TooltipV2
+                          class="hidden md:flex shrink-0 items-center"
+                          placement="bottom"
+                          value={language.t("command.session.fork")}
+                        >
+                          <IconButtonV2
+                            variant="ghost-muted"
+                            size="large"
+                            icon={<IconV2 name="fork" />}
+                            aria-label={language.t("command.session.fork")}
+                            onClick={forkSession}
+                          />
+                        </TooltipV2>
+                      </Show>
+                      <Show
+                        when={settings.general.newLayoutDesigns()}
+                        fallback={
                           <Tooltip value={language.t("common.archive")} placement="bottom" class="hidden md:flex">
                             <IconButton
                               icon="archive"
@@ -1632,6 +1665,9 @@ export function MessageTimeline(props: {
                                 <DropdownMenu.Item onSelect={() => exportSession(id)}>
                                   <DropdownMenu.ItemLabel>{language.t("common.export")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
+                                <DropdownMenu.Item onSelect={forkSession}>
+                                  <DropdownMenu.ItemLabel>{language.t("command.session.fork")}</DropdownMenu.ItemLabel>
+                                </DropdownMenu.Item>
                                 <DropdownMenu.Item onSelect={() => void sessionArchive.archive(id)}>
                                   <DropdownMenu.ItemLabel>{language.t("common.archive")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>
@@ -1705,6 +1741,9 @@ export function MessageTimeline(props: {
                               </Show>
                               <MenuV2.Item onSelect={() => exportSession(id)}>
                                 {language.t("common.export")}...
+                              </MenuV2.Item>
+                              <MenuV2.Item onSelect={forkSession}>
+                                {language.t("command.session.fork")}
                               </MenuV2.Item>
                               <MenuV2.Item onSelect={() => void sessionArchive.archive(id)}>
                                 {language.t("common.archive")}
