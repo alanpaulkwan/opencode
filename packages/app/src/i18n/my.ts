@@ -706,6 +706,8 @@ export const dict = {
   "home.sessions.group.today": "ယနေ့",
   "home.sessions.group.yesterday": "မနေ့က",
   "home.sessions.group.older": "အသက်ကြီးသည်။",
+  "home.sessions.group.pinned": "ပင်ထားသည်",
+  "home.sessions.group.attention": "အာရုံစိုက်ရန်လိုသည်",
   "home.providerTip":
     "Claude၊ GPT၊ Gemini စသည်တို့အပါအဝင် အခြားမော်ဒယ်များကို အသုံးပြုရန် 75+ ဝန်ဆောင်မှုပေးသူများထံ ချိတ်ဆက်ပါ။",
   "session.tab.session": "အပိုင်း",
@@ -847,6 +849,8 @@ export const dict = {
   "common.export": "တင်ပို့ခြင်း။",
   "common.reset": "ပြန်လည်သတ်မှတ်ပါ။",
   "common.archive": "မှတ်တမ်း",
+  "common.pin": "ပင်ရန်",
+  "common.unpin": "ပင်ဖြုတ်ရန်",
   "common.delete": "ဖျက်ပါ",
   "common.close": "ပိတ်ပါ။",
   "common.edit": "တည်းဖြတ်ရန်",

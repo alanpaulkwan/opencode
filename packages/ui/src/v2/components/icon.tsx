@@ -157,6 +157,10 @@ const icons = {
     viewBox: "0 0 16 16",
     body: `<path d="M8 2.5C7.17157 2.5 6.5 3.17157 6.5 4V8C6.5 8.82843 7.17157 9.5 8 9.5C8.82843 9.5 9.5 8.82843 9.5 8V4C9.5 3.17157 8.82843 2.5 8 2.5Z" stroke="currentColor"/><path d="M4.5 7.5V8C4.5 9.933 6.067 11.5 8 11.5C9.933 11.5 11.5 9.933 11.5 8V7.5M8 11.5V13.5M5.5 13.5H10.5" stroke="currentColor" stroke-linecap="square"/>`,
   },
+  pin: {
+    viewBox: "0 0 16 16",
+    body: `<path d="M8 1.75C6.067 1.75 4.5 3.317 4.5 5.25C4.5 8.15 8 14.25 8 14.25C8 14.25 11.5 8.15 11.5 5.25C11.5 3.317 9.933 1.75 8 1.75Z" stroke="currentColor" stroke-linejoin="round"/><path d="M8 6.75C8.828 6.75 9.5 6.078 9.5 5.25C9.5 4.422 8.828 3.75 8 3.75C7.172 3.75 6.5 4.422 6.5 5.25C6.5 6.078 7.172 6.75 8 6.75Z" stroke="currentColor"/>`,
+  },
 }
 
 const spriteID = "opencode-v2-icon-sprite"

@@ -708,6 +708,8 @@ export const dict = {
   "home.sessions.group.today": "آج",
   "home.sessions.group.yesterday": "کل",
   "home.sessions.group.older": "پرانا",
+  "home.sessions.group.pinned": "پن کیتا",
+  "home.sessions.group.attention": "توجہ دیو",
   "home.providerTip":
     "دوجے ماڈل استعمال کرن لئی 75+ فراہم کرن آلیاں نال جڑو، جنہاں چ Claude، GPT، Gemini، وغیرہ شامل نیں",
   "session.tab.session": "سیشن",
@@ -846,6 +848,8 @@ export const dict = {
   "common.export": "برآمد کرو",
   "common.reset": "ری سیٹ کرو",
   "common.archive": "آرکائیو کرو",
+  "common.pin": "پن کرو",
+  "common.unpin": "پن ہٹاؤ",
   "common.delete": "مکاؤ",
   "common.close": "بند کرو",
   "common.edit": "ترمیم کرو",

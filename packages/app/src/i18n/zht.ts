@@ -733,6 +733,8 @@ export const dict = {
   "home.sessions.group.today": "今天",
   "home.sessions.group.yesterday": "昨天",
   "home.sessions.group.older": "更早",
+  "home.sessions.group.pinned": "已釘選",
+  "home.sessions.group.attention": "需要關注",
   "home.providerTip": "連線 75 個以上的提供者，使用 Claude、GPT、Gemini 等其他模型",
 
   "session.tab.session": "工作階段",
@@ -851,6 +853,8 @@ export const dict = {
   "common.export": "匯出",
   "common.reset": "重設",
   "common.archive": "封存",
+  "common.pin": "釘選",
+  "common.unpin": "取消釘選",
   "common.delete": "刪除",
   "common.close": "關閉",
   "common.edit": "編輯",

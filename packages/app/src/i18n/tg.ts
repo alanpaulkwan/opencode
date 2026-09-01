@@ -701,6 +701,8 @@ export const dict = {
   "home.sessions.group.today": "Имруз",
   "home.sessions.group.yesterday": "Дируз",
   "home.sessions.group.older": "калонсолтар",
+  "home.sessions.group.pinned": "Васлшуда",
+  "home.sessions.group.attention": "Диққат лозим",
   "home.providerTip":
     "Барои истифодаи моделҳои дигар, аз ҷумла Claude, GPT, Gemini ва ғайра ба 75+ провайдерҳо пайваст шавед",
   "session.tab.session": "Сессия",
@@ -841,6 +843,8 @@ export const dict = {
   "common.export": "Содирот",
   "common.reset": "Бозсозӣ",
   "common.archive": "Архив",
+  "common.pin": "Васл кардан",
+  "common.unpin": "Кандан",
   "common.delete": "Нобуд кунед",
   "common.close": "Пӯшед",
   "common.edit": "Таҳрир",

@@ -697,6 +697,8 @@ export const dict = {
   "home.sessions.group.today": "Dnes",
   "home.sessions.group.yesterday": "Včera",
   "home.sessions.group.older": "Staršie",
+  "home.sessions.group.pinned": "Pripnuté",
+  "home.sessions.group.attention": "Vyžadujú pozornosť",
   "home.providerTip":
     "Pripojte sa k viac ako 75 poskytovateľom a používajte ďalšie modely, vrátane Claude, GPT, Gemini a ďalších",
   "session.tab.session": "Relácia",
@@ -841,6 +843,8 @@ export const dict = {
   "common.export": "Exportovať",
   "common.reset": "Obnoviť",
   "common.archive": "Archivovať",
+  "common.pin": "Pripnúť",
+  "common.unpin": "Odopnúť",
   "common.delete": "Odstrániť",
   "common.close": "Zavrieť",
   "common.edit": "Upraviť",

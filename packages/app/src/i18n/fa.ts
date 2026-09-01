@@ -698,6 +698,8 @@ export const dict = {
   "home.sessions.group.today": "امروز",
   "home.sessions.group.yesterday": "دیروز",
   "home.sessions.group.older": "قدیمی تر",
+  "home.sessions.group.pinned": "سنجاق‌شده",
+  "home.sessions.group.attention": "نیاز به توجه",
   "home.providerTip":
     "برای استفاده از مدل‌های دیگر، از جمله Claude، GPT، Gemini و غیره به بیش از 75 ارائه‌دهنده متصل شوید.",
   "session.tab.session": "جلسه",
@@ -837,6 +839,8 @@ export const dict = {
   "common.export": "صادرات",
   "common.reset": "بازنشانی کنید",
   "common.archive": "آرشیو",
+  "common.pin": "سنجاق کردن",
+  "common.unpin": "برداشتن سنجاق",
   "common.delete": "حذف",
   "common.close": "بستن",
   "common.edit": "ویرایش کنید",

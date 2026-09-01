@@ -704,6 +704,8 @@ export const dict = {
   "home.sessions.group.today": "Ma",
   "home.sessions.group.yesterday": "Tegnap",
   "home.sessions.group.older": "Régebbi",
+  "home.sessions.group.pinned": "Kitűzve",
+  "home.sessions.group.attention": "Figyelmet igényel",
   "home.providerTip":
     "Csatlakozzon 75+ szolgáltatóhoz más modellek használatához, beleértve a Claude, GPT, Gemini stb.",
   "session.tab.session": "Munkamenet",
@@ -845,6 +847,8 @@ export const dict = {
   "common.export": "Exportálás",
   "common.reset": "Alaphelyzet",
   "common.archive": "Archívum",
+  "common.pin": "Kitűzés",
+  "common.unpin": "Kitűzés feloldása",
   "common.delete": "Törlés",
   "common.close": "Bezárás",
   "common.edit": "Szerkesztés",

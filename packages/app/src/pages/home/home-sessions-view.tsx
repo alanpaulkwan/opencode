@@ -53,6 +53,8 @@ export type HomeSessionsViewProps = {
   isOpenTab: (record: HomeSessionRecord) => boolean
   onCreateSession: () => void
   onOpenSession: (session: Session, options?: OpenSessionOptions) => void
+  isPinned: (session: Session) => boolean
+  onPinSession: (session: Session) => void
   onArchiveSession: (session: Session) => Promise<void>
   onDeleteSession: (session: Session) => void
   onSetHoverTarget: (element: HTMLElement) => void
@@ -429,7 +431,7 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
         data-component="home-session-row"
         class={`
           flex h-10 min-w-0 w-full flex-1 cursor-default items-center gap-2 rounded-[6px] border-0
-          bg-transparent py-3 pl-3 pr-[4.75rem] max-md:pr-2 text-left text-v2-text-text-muted [font-weight:530]
+          bg-transparent py-3 pl-3 pr-[7.25rem] max-md:pr-2 text-left text-v2-text-text-muted [font-weight:530]
           transition-[background-color,color,box-shadow] duration-[120ms] ease-in-out
           hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none
         `}
@@ -460,6 +462,34 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
           max-md:static max-md:translate-y-0 max-md:pr-1.5
         `}
       >
+        <TooltipV2
+          class="flex shrink-0 items-center"
+          placement="bottom"
+          value={
+            props.isPinned(props.record.session)
+              ? props.language.t("common.unpin")
+              : props.language.t("common.pin")
+          }
+        >
+          <IconButtonV2
+            data-action="home-session-pin"
+            variant="ghost-muted"
+            size="large"
+            icon={<IconV2 name="pin" />}
+            state={props.isPinned(props.record.session) ? "pressed" : undefined}
+            aria-label={
+              props.isPinned(props.record.session)
+                ? props.language.t("common.unpin")
+                : props.language.t("common.pin")
+            }
+            aria-pressed={props.isPinned(props.record.session)}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              props.onPinSession(props.record.session)
+            }}
+          />
+        </TooltipV2>
         <Show when={props.canArchiveSession()}>
           <TooltipV2 class="flex shrink-0 items-center" placement="bottom" value={props.language.t("common.archive")}>
             <IconButtonV2

@@ -708,6 +708,8 @@ export const dict = {
   "home.sessions.group.today": "Bu gün",
   "home.sessions.group.yesterday": "Dünən",
   "home.sessions.group.older": "Daha əvvəl",
+  "home.sessions.group.pinned": "Sabitlənib",
+  "home.sessions.group.attention": "Diqqət tələb edir",
   "home.providerTip":
     "Claude, GPT, Gemini və s. daxil olmaqla, digər modellərdən istifadə etmək üçün 75+ provayderə qoşulun",
   "session.tab.session": "Sessiya",
@@ -847,6 +849,8 @@ export const dict = {
   "common.export": "İxrac et",
   "common.reset": "Sıfırla",
   "common.archive": "Arxivlə",
+  "common.pin": "Sabitlə",
+  "common.unpin": "Sabitləməni götür",
   "common.delete": "Sil",
   "common.close": "Bağla",
   "common.edit": "Redaktə et",

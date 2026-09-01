@@ -737,6 +737,8 @@ export const dict = {
   "home.sessions.group.today": "วันนี้",
   "home.sessions.group.yesterday": "เมื่อวาน",
   "home.sessions.group.older": "ก่อนหน้านี้",
+  "home.sessions.group.pinned": "ปักหมุดแล้ว",
+  "home.sessions.group.attention": "ต้องดำเนินการ",
   "home.providerTip": "เชื่อมต่อกับผู้ให้บริการกว่า 75 รายเพื่อใช้โมเดลอื่น ๆ รวมถึง Claude, GPT, Gemini และอีกมากมาย",
 
   "session.tab.session": "เซสชัน",
@@ -858,6 +860,8 @@ export const dict = {
   "common.export": "ส่งออก",
   "common.reset": "รีเซ็ต",
   "common.archive": "จัดเก็บ",
+  "common.pin": "ปักหมุด",
+  "common.unpin": "เลิกปักหมุด",
   "common.delete": "ลบ",
   "common.close": "ปิด",
   "common.edit": "แก้ไข",

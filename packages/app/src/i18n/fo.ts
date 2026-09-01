@@ -699,6 +699,8 @@ export const dict = {
   "home.sessions.group.today": "Í dag",
   "home.sessions.group.yesterday": "Í gjár",
   "home.sessions.group.older": "Eldri",
+  "home.sessions.group.pinned": "Føst",
+  "home.sessions.group.attention": "Tørvar ans",
   "home.providerTip":
     "Set teg í samband við 75+ veitarar fyri at brúka onnur modell, eitt nú Claude, GPT, Gemini, osfr.",
   "session.tab.session": "Seta",
@@ -838,6 +840,8 @@ export const dict = {
   "common.export": "Útflutningur",
   "common.reset": "Nullstilla",
   "common.archive": "Arkiv",
+  "common.pin": "Fest",
+  "common.unpin": "Loys",
   "common.delete": "Strika",
   "common.close": "Lat aftur",
   "common.edit": "Rætta",

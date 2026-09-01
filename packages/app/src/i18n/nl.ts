@@ -706,6 +706,8 @@ export const dict = {
   "home.sessions.group.today": "Vandaag",
   "home.sessions.group.yesterday": "Gisteren",
   "home.sessions.group.older": "Ouder",
+  "home.sessions.group.pinned": "Vastgezet",
+  "home.sessions.group.attention": "Aandacht nodig",
   "home.providerTip":
     "Maak verbinding met meer dan 75 providers om andere modellen te gebruiken, waaronder Claude, GPT, Gemini, enz.",
   "session.tab.session": "Sessie",
@@ -847,6 +849,8 @@ export const dict = {
   "common.export": "Exporteren",
   "common.reset": "Opnieuw instellen",
   "common.archive": "Archiveren",
+  "common.pin": "Vastzetten",
+  "common.unpin": "Losmaken",
   "common.delete": "Verwijderen",
   "common.close": "Sluiten",
   "common.edit": "Bewerken",

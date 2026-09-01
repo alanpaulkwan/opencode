@@ -703,6 +703,8 @@ export const dict = {
   "home.sessions.group.today": "Այսօր",
   "home.sessions.group.yesterday": "Երեկ",
   "home.sessions.group.older": "Հին",
+  "home.sessions.group.pinned": "Ամրացված",
+  "home.sessions.group.attention": "Ուշադրություն է պետք",
   "home.providerTip":
     "Միացեք 75+ մատակարարների՝ այլ մոդելներ օգտագործելու համար, այդ թվում՝ Claude, GPT, Gemini և այլն",
   "session.tab.session": "Նիստ",
@@ -844,6 +846,8 @@ export const dict = {
   "common.export": "Արտահանում",
   "common.reset": "Վերականգնել",
   "common.archive": "Արխիվ",
+  "common.pin": "Ամրացնել",
+  "common.unpin": "Ապաամրացնել",
   "common.delete": "Ջնջել",
   "common.close": "Փակել",
   "common.edit": "Խմբագրել",

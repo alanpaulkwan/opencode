@@ -704,6 +704,8 @@ export const dict = {
   "home.sessions.group.today": "Өнөөдөр",
   "home.sessions.group.yesterday": "Өчигдөр",
   "home.sessions.group.older": "Хуучин",
+  "home.sessions.group.pinned": "Бэхэлсэн",
+  "home.sessions.group.attention": "Анхаарал хэрэгтэй",
   "home.providerTip":
     "Claude, GPT, Gemini гэх мэт бусад загваруудыг ашиглахын тулд 75+ үйлчилгээ үзүүлэгчтэй холбогдоно уу.",
   "session.tab.session": "Сесс",
@@ -845,6 +847,8 @@ export const dict = {
   "common.export": "Экспорт",
   "common.reset": "Дахин тохируулах",
   "common.archive": "Архив",
+  "common.pin": "Бэхлэх",
+  "common.unpin": "Бэхэлгээг цуцлах",
   "common.delete": "Устгах",
   "common.close": "Хаах",
   "common.edit": "Засварлах",

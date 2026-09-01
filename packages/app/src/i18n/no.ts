@@ -736,6 +736,8 @@ export const dict = {
   "common.export": "Eksporter",
   "common.reset": "Tilbakestill",
   "common.archive": "Arkiver",
+  "common.pin": "Fest",
+  "common.unpin": "Løsne",
   "common.delete": "Slett",
   "common.close": "Lukk",
   "common.edit": "Rediger",
@@ -1204,6 +1206,8 @@ export const dict = {
   "home.sessions.group.today": "I dag",
   "home.sessions.group.yesterday": "I går",
   "home.sessions.group.older": "Eldre",
+  "home.sessions.group.pinned": "Festet",
+  "home.sessions.group.attention": "Trenger oppmerksomhet",
   "home.providerTip":
     "Koble til over 75 leverandører for å bruke andre modeller, inkludert Claude, GPT, Gemini og flere",
 

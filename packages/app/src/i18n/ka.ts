@@ -699,6 +699,8 @@ export const dict = {
   "home.sessions.group.today": "დღეს",
   "home.sessions.group.yesterday": "გუშინ",
   "home.sessions.group.older": "ძველი",
+  "home.sessions.group.pinned": "მიმაგრებული",
+  "home.sessions.group.attention": "საჭიროებს ყურადღებას",
   "home.providerTip":
     "დაკავშირება 75+ პროვაიდერთან სხვა მოდელების გამოსაყენებლად, მათ შორის, Claude, GPT, Gemini და ა.შ.",
   "session.tab.session": "სესია",
@@ -837,6 +839,8 @@ export const dict = {
   "common.export": "ექსპორტი",
   "common.reset": "გადატვირთვა",
   "common.archive": "არქივი",
+  "common.pin": "მიმაგრება",
+  "common.unpin": "მოხსნა",
   "common.delete": "წაშლა",
   "common.close": "დახურვა",
   "common.edit": "რედაქტირება",

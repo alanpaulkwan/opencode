@@ -705,6 +705,8 @@ export const dict = {
   "home.sessions.group.today": "Σήμερα",
   "home.sessions.group.yesterday": "Χθες",
   "home.sessions.group.older": "Παλαιότερο",
+  "home.sessions.group.pinned": "Καρφιτσωμένα",
+  "home.sessions.group.attention": "Χρειάζονται προσοχή",
   "home.providerTip":
     "Συνδεθείτε σε 75+ παρόχους για να χρησιμοποιήσετε άλλα μοντέλα, συμπεριλαμβανομένων των Claude, GPT, Gemini, κ.λπ.",
   "session.tab.session": "Συνεδρία",
@@ -847,6 +849,8 @@ export const dict = {
   "common.export": "Εξαγωγή",
   "common.reset": "Επαναφορά",
   "common.archive": "Αρχείο",
+  "common.pin": "Καρφίτσωμα",
+  "common.unpin": "Ξεκαρφίτσωμα",
   "common.delete": "Διαγραφή",
   "common.close": "Κλείσιμο",
   "common.edit": "Επεξεργασία",

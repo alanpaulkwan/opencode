@@ -559,6 +559,8 @@ export const dict = {
   "common.export": "내보내기",
   "common.reset": "초기화",
   "common.archive": "보관",
+  "common.pin": "고정",
+  "common.unpin": "고정 해제",
   "common.delete": "삭제",
   "common.close": "닫기",
   "common.edit": "편집",
@@ -992,6 +994,8 @@ export const dict = {
   "home.sessions.group.today": "오늘",
   "home.sessions.group.yesterday": "어제",
   "home.sessions.group.older": "이전",
+  "home.sessions.group.pinned": "고정됨",
+  "home.sessions.group.attention": "확인 필요",
   "home.providerTip": "75개 이상의 공급자에 연결하여 Claude, GPT, Gemini 등의 다른 모델을 사용하세요",
 
   "session.tab.unknown": "알 수 없는 세션",

@@ -692,6 +692,8 @@ export const dict = {
   "home.sessions.group.today": "Hoje",
   "home.sessions.group.yesterday": "Ontem",
   "home.sessions.group.older": "Mais antigas",
+  "home.sessions.group.pinned": "Fixadas",
+  "home.sessions.group.attention": "Precisam de atenção",
   "home.providerTip":
     "Conecte-se a mais de 75 provedores para usar outros modelos, incluindo Claude, GPT, Gemini e muito mais",
   "session.tab.session": "Sessão",
@@ -811,6 +813,8 @@ export const dict = {
   "common.export": "Exportar",
   "common.reset": "Redefinir",
   "common.archive": "Arquivar",
+  "common.pin": "Fixar",
+  "common.unpin": "Desafixar",
   "common.delete": "Excluir",
   "common.close": "Fechar",
   "common.edit": "Editar",

@@ -700,6 +700,8 @@ export const dict = {
   "home.sessions.group.today": "Šodien",
   "home.sessions.group.yesterday": "Vakar",
   "home.sessions.group.older": "Vecākas",
+  "home.sessions.group.pinned": "Piesprausts",
+  "home.sessions.group.attention": "Nepieciešama uzmanība",
   "home.providerTip":
     "Pievienojiet vairāk nekā 75 pakalpojumu sniedzējus, lai izmantotu citus modeļus, tostarp Claude, GPT, Gemini u.c.",
   "session.tab.session": "Sesija",
@@ -843,6 +845,8 @@ export const dict = {
   "common.export": "Eksportēt",
   "common.reset": "Atiestatīt",
   "common.archive": "Arhivēt",
+  "common.pin": "Piespraust",
+  "common.unpin": "Atspraust",
   "common.delete": "Dzēst",
   "common.close": "Aizvērt",
   "common.edit": "Rediģēt",

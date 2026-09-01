@@ -624,6 +624,8 @@ export const dict = {
   "home.sessions.group.today": "I dag",
   "home.sessions.group.yesterday": "I går",
   "home.sessions.group.older": "Ældre",
+  "home.sessions.group.pinned": "Fastgjort",
+  "home.sessions.group.attention": "Kræver opmærksomhed",
   "home.providerTip":
     "Opret forbindelse til mere end 75 udbydere for at bruge andre modeller, herunder Claude, GPT, Gemini og flere",
 
@@ -748,6 +750,8 @@ export const dict = {
   "common.export": "Eksportér",
   "common.reset": "Nulstil",
   "common.archive": "Arkivér",
+  "common.pin": "Fastgør",
+  "common.unpin": "Frigør",
   "common.delete": "Slet",
   "common.close": "Luk",
   "common.edit": "Rediger",

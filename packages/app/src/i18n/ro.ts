@@ -699,6 +699,8 @@ export const dict = {
   "home.sessions.group.today": "Astăzi",
   "home.sessions.group.yesterday": "Ieri",
   "home.sessions.group.older": "Mai vechi",
+  "home.sessions.group.pinned": "Fixate",
+  "home.sessions.group.attention": "Necesită atenție",
   "home.providerTip":
     "Conectează-te la peste 75 de furnizori pentru a folosi alte modele, inclusiv Claude, GPT, Gemini etc.",
   "session.tab.session": "Sesiune",
@@ -843,6 +845,8 @@ export const dict = {
   "common.export": "Exportă",
   "common.reset": "Resetează",
   "common.archive": "Arhivează",
+  "common.pin": "Fixează",
+  "common.unpin": "Anulează fixarea",
   "common.delete": "Șterge",
   "common.close": "Închide",
   "common.edit": "Editează",

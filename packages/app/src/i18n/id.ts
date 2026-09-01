@@ -762,6 +762,8 @@ export const dict = {
   "home.sessions.group.today": "Hari ini",
   "home.sessions.group.yesterday": "Kemarin",
   "home.sessions.group.older": "Lebih lama",
+  "home.sessions.group.pinned": "Disematkan",
+  "home.sessions.group.attention": "Perlu perhatian",
   "home.providerTip":
     "Hubungkan ke 75+ penyedia untuk menggunakan model lain, termasuk Claude, GPT, Gemini, dan lainnya",
 
@@ -912,6 +914,8 @@ export const dict = {
   "common.export": "Ekspor",
   "common.reset": "Atur ulang",
   "common.archive": "Arsipkan",
+  "common.pin": "Sematkan",
+  "common.unpin": "Lepas sematan",
   "common.delete": "Hapus",
   "common.close": "Tutup",
   "common.edit": "Sunting",

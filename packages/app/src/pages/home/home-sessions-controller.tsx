@@ -4,7 +4,6 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { DialogFooter, DialogHeader, DialogTitleGroup, DialogV2 } from "@opencode-ai/ui/v2/dialog-v2"
 import { useQuery } from "@tanstack/solid-query"
-import { DateTime } from "luxon"
 import { type Accessor, createEffect, createMemo, createRoot, type JSX, startTransition } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { useCommand } from "@/context/command"
@@ -15,6 +14,8 @@ import {
 } from "@/context/global-sync/home-session-index"
 import type { LocalProject } from "@/context/layout"
 import { useLanguage } from "@/context/language"
+import { useNotification } from "@/context/notification"
+import { usePermission } from "@/context/permission"
 import { ServerConnection } from "@/context/server"
 import { sessionHasOpenTab, useTabs } from "@/context/tabs"
 import { compareSessionTime, displayName, errorMessage, projectForSession } from "@/pages/layout/helpers"
@@ -26,6 +27,9 @@ import { Binary } from "@opencode-ai/core/util/binary"
 import { archiveHomeSession } from "../home-session-archive"
 import { deleteHomeSession, removedHomeSessionIDs } from "../home-session-delete"
 import type { HomeController } from "./home-controller"
+import { homeSessionNeedsAttention } from "./home-session-attention"
+import { groupHomeSessions, type HomeSessionGroup as GroupedHomeSessions } from "./home-session-groups"
+import { createHomeSessionPins } from "./home-session-pins"
 
 const HOME_SESSION_LIMIT = 64
 export type HomeSessionRecord = {
@@ -34,11 +38,7 @@ export type HomeSessionRecord = {
   projectName: string
 }
 
-export type HomeSessionGroup = {
-  id: "today" | "yesterday" | "older"
-  title: string
-  sessions: HomeSessionRecord[]
-}
+export type HomeSessionGroup = GroupedHomeSessions<HomeSessionRecord>
 
 export type OpenSessionOptions = { background?: boolean }
 
@@ -47,6 +47,9 @@ export function createHomeSessionsController(home: HomeController) {
   const command = useCommand()
   const dialog = useDialog()
   const language = useLanguage()
+  const notification = useNotification()
+  const permission = usePermission()
+  const pins = createHomeSessionPins()
   const projectDirectories = createMemo(() => {
     const project = home.project.selected()
     if (!project) return home.project.list().flatMap(directories)
@@ -99,7 +102,44 @@ export function createHomeSessionsController(home: HomeController) {
     }),
   )
   const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
-  const groups = createMemo(() => groupSessions(records(), language))
+  const attentionIDs = createMemo(() => {
+    const ids = new Set<string>()
+    const conn = home.server.focused()
+    const ctx = home.server.focusedContext()
+    if (!conn || !ctx) return ids
+    const server = ServerConnection.key(conn)
+    const notif = notification.ensureServerState(server)
+    const perm = permission.ensureServerState(server)
+    for (const record of records()) {
+      const [store] = ctx.sync.child(record.session.directory, { bootstrap: false })
+      if (
+        homeSessionNeedsAttention({
+          sessionID: record.session.id,
+          sessions: store.session ?? [],
+          permissions: ctx.sync.session.data.permission,
+          questions: ctx.sync.session.data.question,
+          autoResponds: (item) => perm.autoResponds(item, record.session.directory),
+          unseenCount: notif.session.unseenCount(record.session.id),
+        })
+      ) {
+        ids.add(record.session.id)
+      }
+    }
+    return ids
+  })
+  const groups = createMemo(() =>
+    groupHomeSessions({
+      records: records(),
+      id: (record) => record.session.id,
+      pinnedAt: pins.map(home.selection.value().server),
+      attention: attentionIDs(),
+      titles: {
+        pinned: language.t("home.sessions.group.pinned"),
+        attention: language.t("home.sessions.group.attention"),
+        older: language.t("home.sessions.group.older"),
+      },
+    }),
+  )
   const prefetched = new Set<string>()
 
   createEffect(() => {
@@ -182,6 +222,8 @@ export function createHomeSessionsController(home: HomeController) {
       server: () => home.selection.value().server,
       canCreate: () => !!home.project.newSession(),
       canArchive: () => !!home.server.focusedContext(),
+      isPinned: (session: Session) => pins.isPinned(home.selection.value().server, session.id),
+      pin: (session: Session) => pins.toggle(home.selection.value().server, session.id),
       create: home.project.openNewSession,
       open: (session: Session, options?: OpenSessionOptions) => {
         const directoryKey = pathKey(session.directory)
@@ -343,30 +385,6 @@ function buildHomeSessionRecords(input: {
 
 export function homeSessionSearchKey(record: HomeSessionRecord) {
   return `${pathKey(record.session.directory)}:${record.session.id}`
-}
-
-function groupSessions(records: HomeSessionRecord[], language: ReturnType<typeof useLanguage>): HomeSessionGroup[] {
-  const now = DateTime.local()
-  const yesterday = now.minus({ days: 1 })
-  const todaySessions = records.filter((record) =>
-    DateTime.fromMillis(record.session.time.updated ?? record.session.time.created).hasSame(now, "day"),
-  )
-  const yesterdaySessions = records.filter((record) =>
-    DateTime.fromMillis(record.session.time.updated ?? record.session.time.created).hasSame(yesterday, "day"),
-  )
-  const olderSessions = records.filter((record) => {
-    const time = DateTime.fromMillis(record.session.time.updated ?? record.session.time.created)
-    return !time.hasSame(now, "day") && !time.hasSame(yesterday, "day")
-  })
-  const olderTitle =
-    todaySessions.length === 0 && yesterdaySessions.length === 0
-      ? language.t("sidebar.project.recentSessions")
-      : language.t("home.sessions.group.older")
-  return [
-    { id: "today" as const, title: language.t("home.sessions.group.today"), sessions: todaySessions },
-    { id: "yesterday" as const, title: language.t("home.sessions.group.yesterday"), sessions: yesterdaySessions },
-    { id: "older" as const, title: olderTitle, sessions: olderSessions },
-  ].filter((group) => group.sessions.length > 0)
 }
 
 export type HomeSessionsController = ReturnType<typeof createHomeSessionsController>

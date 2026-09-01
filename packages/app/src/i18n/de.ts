@@ -584,6 +584,8 @@ export const dict = {
   "home.sessions.group.today": "Heute",
   "home.sessions.group.yesterday": "Gestern",
   "home.sessions.group.older": "Älter",
+  "home.sessions.group.pinned": "Angeheftet",
+  "home.sessions.group.attention": "Aufmerksamkeit nötig",
   "home.providerTip":
     "OpenCode mit über 75 Anbietern verbinden, um weitere Modelle wie Claude, GPT, Gemini und andere zu nutzen",
   "session.tab.session": "Sitzung",
@@ -701,6 +703,8 @@ export const dict = {
   "common.export": "Exportieren",
   "common.reset": "Zurücksetzen",
   "common.archive": "Archivieren",
+  "common.pin": "Anheften",
+  "common.unpin": "Loslösen",
   "common.delete": "Löschen",
   "common.close": "Schließen",
   "common.edit": "Bearbeiten",

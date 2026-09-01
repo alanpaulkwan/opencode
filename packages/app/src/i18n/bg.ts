@@ -704,6 +704,8 @@ export const dict = {
   "home.sessions.group.today": "Днес",
   "home.sessions.group.yesterday": "Вчера",
   "home.sessions.group.older": "По-стари",
+  "home.sessions.group.pinned": "Закачени",
+  "home.sessions.group.attention": "Изискват внимание",
   "home.providerTip":
     "Свържете се с над 75 доставчици, за да използвате други модели, включително Claude, GPT, Gemini и т.н.",
   "session.tab.session": "Сесия",
@@ -844,6 +846,8 @@ export const dict = {
   "common.export": "Експортиране",
   "common.reset": "Нулиране",
   "common.archive": "Архив",
+  "common.pin": "Закачи",
+  "common.unpin": "Откачи",
   "common.delete": "Изтриване",
   "common.close": "затвори",
   "common.edit": "Редактиране",

@@ -705,6 +705,8 @@ export const dict = {
   "home.sessions.group.today": "Šiandien",
   "home.sessions.group.yesterday": "vakar",
   "home.sessions.group.older": "Vyresni",
+  "home.sessions.group.pinned": "Prisegta",
+  "home.sessions.group.attention": "Reikia dėmesio",
   "home.providerTip":
     "Prisijunkite prie 75 ir daugiau tiekėjų, kad galėtumėte naudoti kitus modelius, įskaitant Claude, GPT, Gemini ir kt.",
   "session.tab.session": "Seansas",
@@ -851,6 +853,8 @@ export const dict = {
   "common.export": "Eksportuoti",
   "common.reset": "Nustatyti iš naujo",
   "common.archive": "Archyvas",
+  "common.pin": "Prisegti",
+  "common.unpin": "Atsegti",
   "common.delete": "Ištrinti",
   "common.close": "Uždaryti",
   "common.edit": "Redaguoti",

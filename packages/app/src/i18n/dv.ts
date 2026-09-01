@@ -710,6 +710,8 @@ export const dict = {
   "home.sessions.group.today": "މިއަދު",
   "home.sessions.group.yesterday": "އިއްޔެ",
   "home.sessions.group.older": "އުމުރުން ދުވަސްވީއެވެ",
+  "home.sessions.group.pinned": "ޕިން ކުރެވިފައި",
+  "home.sessions.group.attention": "ސަމާލުކަން ބޭނުން",
   "home.providerTip":
     "75+ ޕްރޮވައިޑަރުންނާ ގުޅިގެން އެހެން މޮޑެލްތައް ބޭނުންކުރުން، އޭގެ ތެރޭގައި Claude، GPT، Gemini ފަދަ މޮޑެލްތައް ހިމެނެއެވެ",
   "session.tab.session": "ސެޝަން",
@@ -851,6 +853,8 @@ export const dict = {
   "common.export": "އެކްސްޕޯޓް",
   "common.reset": "ރީސެޓް ކުރުން",
   "common.archive": "އާކައިވް",
+  "common.pin": "ޕިން ކުރޭ",
+  "common.unpin": "ޕިން ނައްތާ",
   "common.delete": "ފުހެލުން",
   "common.close": "ލެއްޕުން",
   "common.edit": "ބަދަލު ގެނައުން",

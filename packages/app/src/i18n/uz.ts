@@ -702,6 +702,8 @@ export const dict = {
   "home.sessions.group.today": "Bugun",
   "home.sessions.group.yesterday": "Kecha",
   "home.sessions.group.older": "Kattaroq",
+  "home.sessions.group.pinned": "Qadalgan",
+  "home.sessions.group.attention": "E'tibor kerak",
   "home.providerTip":
     "Claude, GPT, Gemini va boshqalar kabi boshqa modellardan foydalanish uchun 75 dan ortiq provayderlarga ulaning.",
   "session.tab.session": "Sessiya",
@@ -844,6 +846,8 @@ export const dict = {
   "common.export": "Eksport",
   "common.reset": "Qayta tiklash",
   "common.archive": "Arxiv",
+  "common.pin": "Qadash",
+  "common.unpin": "Yechish",
   "common.delete": "Oʻchirish",
   "common.close": "Yopish",
   "common.edit": "Tahrirlash",

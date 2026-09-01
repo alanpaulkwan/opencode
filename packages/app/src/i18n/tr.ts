@@ -749,6 +749,8 @@ export const dict = {
   "home.sessions.group.today": "Bugün",
   "home.sessions.group.yesterday": "Dün",
   "home.sessions.group.older": "Daha eski",
+  "home.sessions.group.pinned": "Sabitlenmiş",
+  "home.sessions.group.attention": "İlgi gerektiriyor",
   "home.providerTip": "Claude, GPT, Gemini ve diğer modelleri kullanmak için 75'ten fazla sağlayıcıya bağlanın",
 
   "session.tab.session": "Oturum",
@@ -876,6 +878,8 @@ export const dict = {
   "common.export": "Dışa aktar",
   "common.reset": "Sıfırla",
   "common.archive": "Arşivle",
+  "common.pin": "Sabitle",
+  "common.unpin": "Sabitlemeyi kaldır",
   "common.delete": "Sil",
   "common.close": "Kapat",
   "common.edit": "Düzenle",

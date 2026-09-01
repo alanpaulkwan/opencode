@@ -706,6 +706,8 @@ export const dict = {
   "home.sessions.group.today": "Danas",
   "home.sessions.group.yesterday": "Jučer",
   "home.sessions.group.older": "Starije",
+  "home.sessions.group.pinned": "Prikvačeno",
+  "home.sessions.group.attention": "Treba pažnju",
   "home.providerTip":
     "Povežite se s više od 75 pružatelja usluga za korištenje drugih modela, uključujući Claude, GPT, Gemini itd.",
   "session.tab.session": "Sesija",
@@ -847,6 +849,8 @@ export const dict = {
   "common.export": "Izvoz",
   "common.reset": "Resetiraj",
   "common.archive": "Arhiva",
+  "common.pin": "Prikvači",
+  "common.unpin": "Otkači",
   "common.delete": "Izbriši",
   "common.close": "Zatvoriti",
   "common.edit": "Uredi",
