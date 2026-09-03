@@ -75,6 +75,7 @@ export function createHomeSessionsController(home: HomeController) {
   const projectByID = createMemo(
     () => new Map(home.project.list().flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
   )
+  const projectCatalog = home.project.catalog
   const homeSessions = () => home.server.focusedSync().homeSessions
   const sessionEventLoad = useQuery(() => ({
     queryKey: homeSessions().eventsKey,
@@ -115,6 +116,7 @@ export function createHomeSessionsController(home: HomeController) {
       sessions: indexedSessions,
       projectDirectories,
       projects: home.project.list,
+      projectCatalog,
       projectByID,
       selected: home.project.selected,
     }),
@@ -521,13 +523,14 @@ function buildHomeSessionRecords(input: {
   sessions: () => Session[]
   projectDirectories: () => string[]
   projects: () => LocalProject[]
+  projectCatalog: () => LocalProject[]
   projectByID: () => Map<string, LocalProject>
   selected: () => LocalProject | undefined
 }) {
   const selected = input.selected()
   const directories = new Set(input.projectDirectories().map(pathKey))
   const sessions = input.sessions().filter((session) => {
-    if (selected) return homeSessionMatchesProject(session, selected)
+    if (selected) return homeSessionMatchesProject(session, selected, input.projectCatalog())
     return directories.has(pathKey(session.directory))
   })
   return [...new Map(sessions.map((session) => [session.id, session] as const)).values()]
