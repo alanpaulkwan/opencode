@@ -406,6 +406,25 @@ describe("HttpApi UI fallback", () => {
       })
 
       expect(response.status).toBe(200)
+      expect(response.headers.get("set-cookie")).toContain(`${ServerAuth.COOKIE_NAME}=`)
+    }),
+  )
+
+  it.live("accepts a remembered-login cookie for the web UI", () =>
+    Effect.gen(function* () {
+      const response = yield* uiApp({
+        password: "secret",
+        username: "opencode",
+        disableEmbeddedWebUi: true,
+      }).request("/", {
+        headers: {
+          cookie:
+            ServerAuth.rememberCookie({ password: Option.some("secret"), username: "opencode" })?.split(";")[0] ?? "",
+        },
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get("www-authenticate")).toBeNull()
     }),
   )
 

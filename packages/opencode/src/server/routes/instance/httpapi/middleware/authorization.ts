@@ -37,6 +37,14 @@ function emptyCredential() {
   }
 }
 
+function remember<A, E, R>(effect: Effect.Effect<A, E, R>, config: ServerAuth.Info) {
+  const cookie = ServerAuth.rememberCookie(config)
+  if (!cookie) return effect
+  return HttpEffect.appendPreResponseHandler((_request, response) =>
+    Effect.succeed(HttpServerResponse.setHeader(response, "set-cookie", cookie)),
+  ).pipe(Effect.flatMap(() => effect))
+}
+
 function validateCredential<A, E, R>(
   effect: Effect.Effect<A, E, R>,
   credential: ServerAuth.DecodedCredentials,
@@ -50,7 +58,7 @@ function validateCredential<A, E, R>(
       )
       return yield* new HttpApiError.Unauthorized({})
     }
-    return yield* effect
+    return yield* remember(effect, config)
   })
 }
 
@@ -95,7 +103,7 @@ function validateRawCredential<A, E, R>(
         headers: { "www-authenticate": WWW_AUTHENTICATE },
       }),
     )
-  return effect
+  return remember(effect, config)
 }
 
 export const authorizationRouterMiddleware = HttpRouter.middleware()(
@@ -108,6 +116,7 @@ export const authorizationRouterMiddleware = HttpRouter.middleware()(
         const request = yield* HttpServerRequest.HttpServerRequest
         const url = new URL(request.url, "http://localhost")
         if (isPublicUIPath(request.method, url.pathname)) return yield* effect
+        if (ServerAuth.remembered(request.headers.cookie, config)) return yield* remember(effect, config)
         return yield* credentialFromURL(url, request).pipe(
           Effect.flatMap((credential) => validateRawCredential(effect, credential, config)),
         )
@@ -123,6 +132,7 @@ export const authorizationLayer = Layer.effect(
     return Authorization.of((effect) =>
       Effect.gen(function* () {
         const request = yield* HttpServerRequest.HttpServerRequest
+        if (ServerAuth.remembered(request.headers.cookie, config)) return yield* remember(effect, config)
         return yield* credentialFromRequest(request).pipe(
           Effect.flatMap((credential) => validateCredential(effect, credential, config)),
         )
@@ -141,6 +151,7 @@ export const ptyConnectAuthorizationLayer = Layer.effect(
         const request = yield* HttpServerRequest.HttpServerRequest
         const url = new URL(request.url, "http://localhost")
         if (hasPtyConnectTicketURL(url)) return yield* effect
+        if (ServerAuth.remembered(request.headers.cookie, config)) return yield* remember(effect, config)
         return yield* credentialFromURL(url, request).pipe(
           Effect.flatMap((credential) => validateCredential(effect, credential, config)),
         )

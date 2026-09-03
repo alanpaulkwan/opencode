@@ -56,4 +56,16 @@ describe("ServerAuth", () => {
     expect(ServerAuth.authorized({ username: "alice", password: Redacted.make("secret") }, config)).toBe(true)
     expect(ServerAuth.authorized({ username: "opencode", password: Redacted.make("secret") }, config)).toBe(false)
   })
+
+  test("recognizes its secure remembered-login cookie", () => {
+    const config = { password: Option.some("secret"), username: "alice" }
+    const cookie = ServerAuth.rememberCookie(config)
+
+    expect(cookie).toContain(`${ServerAuth.COOKIE_NAME}=`)
+    expect(cookie).toContain("HttpOnly")
+    expect(cookie).toContain("Secure")
+    expect(cookie).toContain("SameSite=Strict")
+    expect(ServerAuth.remembered(cookie?.split(";")[0], config)).toBe(true)
+    expect(ServerAuth.remembered(cookie?.split(";")[0], { ...config, password: Option.some("changed") })).toBe(false)
+  })
 })

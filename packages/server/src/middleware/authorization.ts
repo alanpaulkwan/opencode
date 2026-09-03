@@ -9,6 +9,14 @@ import { HttpEffect, HttpServerRequest, HttpServerResponse } from "effect/unstab
 const AUTH_TOKEN_QUERY = "auth_token"
 const WWW_AUTHENTICATE = 'Basic realm="Secure Area"'
 
+function remember<A, E, R>(effect: Effect.Effect<A, E, R>, config: ServerAuth.Info) {
+  const cookie = ServerAuth.rememberCookie(config)
+  if (!cookie) return effect
+  return HttpEffect.appendPreResponseHandler((_request, response) =>
+    Effect.succeed(HttpServerResponse.setHeader(response, "set-cookie", cookie)),
+  ).pipe(Effect.flatMap(() => effect))
+}
+
 function emptyCredential() {
   return { username: "", password: Redacted.make("") }
 }
@@ -46,8 +54,9 @@ export const authorizationLayer = Layer.effect(
         // Browsers cannot set headers on WebSocket upgrades, so a ticketed PTY connect skips
         // credential checks here; the connect handler consumes and validates the ticket.
         if (hasPtyConnectTicketURL(new URL(request.url, "http://localhost"))) return yield* effect
+        if (ServerAuth.remembered(request.headers.cookie, config)) return yield* remember(effect, config)
         const credential = yield* credentialFromRequest(request)
-        if (ServerAuth.authorized(credential, config)) return yield* effect
+        if (ServerAuth.authorized(credential, config)) return yield* remember(effect, config)
         yield* HttpEffect.appendPreResponseHandler((_request, response) =>
           Effect.succeed(HttpServerResponse.setHeader(response, "www-authenticate", WWW_AUTHENTICATE)),
         )

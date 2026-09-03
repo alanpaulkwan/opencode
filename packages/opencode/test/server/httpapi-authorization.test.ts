@@ -101,6 +101,17 @@ describe("HttpApi authorization middleware", () => {
       expect(badPassword.status).toBe(401)
       expect(badPassword.headers["www-authenticate"] ?? "").toContain("Basic")
       expect(good.status).toBe(200)
+      expect(good.headers["set-cookie"] ?? "").toContain(`${ServerAuth.COOKIE_NAME}=`)
+    }),
+  )
+
+  itSecret.live("accepts a remembered-login cookie without another basic-auth challenge", () =>
+    Effect.gen(function* () {
+      const remembered = ServerAuth.rememberCookie({ password: Option.some("secret"), username: "opencode" })
+      const response = yield* getProbe({ cookie: remembered?.split(";")[0] ?? "" })
+
+      expect(response.status).toBe(200)
+      expect(response.headers["www-authenticate"]).toBeUndefined()
     }),
   )
 
