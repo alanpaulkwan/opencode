@@ -80,8 +80,10 @@ describe("clusterHomeSessions", () => {
       pinnedTitle: "Pinned",
     })
     expect(clustered.map((group) => [group.id, group.title, group.sessions.map((item) => item.id)])).toEqual([
+      ["active", "Active", []],
       ["named:research", "research", ["research-new", "research-old"]],
       ["named:ops", "active management", ["ops-old"]],
+      ["ungrouped", "Recent", []],
     ])
   })
 
@@ -101,9 +103,10 @@ describe("clusterHomeSessions", () => {
       pinnedTitle: "Pinned",
     })
     expect(clustered.map((group) => [group.id, group.title, group.sessions.map((item) => item.id)])).toEqual([
-      ["ungrouped", "Recent", ["a", "b"]],
+      ["active", "Active", []],
       ["named:research", "research", []],
       ["named:ops", "active management", []],
+      ["ungrouped", "Recent", ["a", "b"]],
     ])
   })
 
@@ -125,8 +128,10 @@ describe("clusterHomeSessions", () => {
     })
     expect(clustered.map((group) => [group.id, group.sessions.map((item) => item.id)])).toEqual([
       ["pinned", ["pin"]],
+      ["active", []],
       ["named:ops", ["ops-new"]],
       ["named:research", ["research-old"]],
+      ["ungrouped", []],
     ])
   })
 
@@ -149,8 +154,8 @@ describe("clusterHomeSessions", () => {
     expect(clustered.map((group) => [group.id, group.sessions.map((item) => item.id)])).toEqual([
       ["active", ["running"]],
       ["named:research", ["named"]],
-      ["ungrouped", ["recent"]],
       ["named:ops", []],
+      ["ungrouped", ["recent"]],
     ])
   })
 })

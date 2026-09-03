@@ -152,18 +152,16 @@ export function clusterHomeSessions<T>(input: {
     ...(pinned.length > 0
       ? [{ id: HOME_SESSION_PINNED_CLUSTER, title: input.pinnedTitle, sessions: pinned }]
       : []),
-    ...(active.length > 0 ? [{ id: "active", title: input.activeTitle, sessions: active }] : []),
+    { id: "active", title: input.activeTitle, sessions: active },
     ...namedOrder.map((id) => {
       const cluster = named.get(id)!
       return { id: namedGroupClusterId(id), title: cluster.title, sessions: cluster.sessions }
     }),
-    ...(ungrouped.length > 0
-      ? [{ id: HOME_SESSION_UNGROUPED_CLUSTER, title: input.recentTitle, sessions: ungrouped }]
-      : []),
     ...empty.map((group) => ({
       id: namedGroupClusterId(group.id),
       title: group.name,
       sessions: [] as T[],
     })),
+    { id: HOME_SESSION_UNGROUPED_CLUSTER, title: input.recentTitle, sessions: ungrouped },
   ]
 }
