@@ -1,6 +1,7 @@
-import { createMemo } from "solid-js"
+import { createEffect, createMemo } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
+import { ServerConnection } from "@/context/server"
 import { createHomeController } from "./home/home-controller"
 import { createHomeProjectsController } from "./home/home-projects-controller"
 import { HomeUtilityNav } from "./home/home-projects-view"
@@ -18,6 +19,15 @@ export function NewHome() {
   const compact = createMediaQuery("(max-width: 1023px)")
   const groups = createMemo(() => (compact() ? sessions.data.clusters() : sessions.data.groups()))
   const scroll = createHomeScrollController(groups)
+
+  createEffect(() => {
+    if (!compact()) return
+    if (home.selection.value().directory) return
+    const project = home.project.newSession()
+    const conn = home.server.focused()
+    if (!project || !conn) return
+    home.selection.set({ server: ServerConnection.key(conn), directory: project.worktree })
+  })
   return (
     <div
       class={`
@@ -44,7 +54,14 @@ export function NewHome() {
           <div class="hidden lg:contents">
             <HomeProjects projects={projects} scroll={scroll} />
           </div>
-          <HomeSessions sessions={sessions} search={search} scroll={scroll} groups={groups} compact={compact} />
+          <HomeSessions
+            sessions={sessions}
+            search={search}
+            scroll={scroll}
+            groups={groups}
+            compact={compact}
+            projects={projects}
+          />
           <HomeUtilityNav
             class="flex lg:hidden"
             onOpenSettings={projects.utility.settings}

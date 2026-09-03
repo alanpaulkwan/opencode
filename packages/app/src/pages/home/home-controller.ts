@@ -94,6 +94,18 @@ export function createHomeController() {
           return
         setSelection(toggleHomeProjectSelection(selection(), key, directory))
       },
+      pick: (conn: ServerConnection.Any, directory: string) => {
+        const key = ServerConnection.key(conn)
+        if (global.servers.health[key]?.healthy === false) return
+        if (
+          !global
+            .ensureServerCtx(conn)
+            .projects.list()
+            .some((project) => project.worktree === directory)
+        )
+          return
+        setSelection({ server: key, directory })
+      },
       add: (conn: ServerConnection.Any, directories: string[]) => {
         const directory = directories[0]
         if (!directory) return

@@ -1,4 +1,6 @@
 import type { Accessor } from "solid-js"
+import { ServerConnection } from "@/context/server"
+import type { HomeProjectsController } from "./home-projects-controller"
 import type { HomeScrollController } from "./home-scroll-controller"
 import type { HomeSessionSearchController } from "./home-session-search-controller"
 import type { HomeSessionGroup, HomeSessionsController } from "./home-sessions-controller"
@@ -10,7 +12,11 @@ export function HomeSessions(props: {
   scroll: HomeScrollController
   groups: Accessor<HomeSessionGroup[]>
   compact: Accessor<boolean>
+  projects: HomeProjectsController
 }) {
+  const focusedServer = () =>
+    props.projects.server.list().find((conn) => ServerConnection.key(conn) === props.sessions.session.server())
+
   return (
     <HomeSessionsView
       language={props.sessions.copy.language}
@@ -29,7 +35,14 @@ export function HomeSessions(props: {
       searchNoResultsLabel={props.search.result.noResultsLabel}
       titleOpacity={props.scroll.header.titleOpacity}
       isOpenTab={props.sessions.tab.isOpen}
-      onCreateSession={props.sessions.session.create}
+      onCreateSession={() => {
+        if (props.sessions.session.canCreate() && props.projects.project.list().length > 0) {
+          props.sessions.session.create()
+          return
+        }
+        const conn = focusedServer()
+        if (conn) props.projects.project.choose(conn)
+      }}
       onOpenSession={props.sessions.session.open}
       isPinned={props.sessions.session.isPinned}
       onPinSession={props.sessions.session.pin}
@@ -61,6 +74,21 @@ export function HomeSessions(props: {
       onDeleteNamedGroup={props.sessions.session.deleteNamedGroup}
       onMoveSession={props.sessions.session.moveSession}
       onRemoveSessionFromGroup={props.sessions.session.removeSessionFromGroup}
+      project={() => {
+        const directory = props.projects.selection.value().directory
+        if (!directory) return
+        return props.projects.project.list().find((item) => item.worktree === directory)
+      }}
+      projects={props.projects.project.list}
+      onPickProject={(directory) => {
+        const conn = focusedServer()
+        if (conn) props.projects.project.pick(conn, directory)
+      }}
+      onAddProject={() => {
+        const conn = focusedServer()
+        if (conn) props.projects.project.choose(conn)
+      }}
+      onCreateNamedGroup={props.sessions.session.createNamedGroup}
     />
   )
 }

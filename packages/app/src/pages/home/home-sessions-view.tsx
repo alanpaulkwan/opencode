@@ -1,15 +1,18 @@
 import type { Session } from "@opencode-ai/sdk/v2/client"
-import { type Accessor, createMemo, For, Show, Suspense, type JSX } from "solid-js"
+import { type Accessor, createMemo, createSignal, For, Show, Suspense, type JSX } from "solid-js"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
+import { ProjectAvatar } from "@opencode-ai/ui/v2/project-avatar-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+import { getProjectAvatarVariant, type LocalProject } from "@/context/layout"
 import { useLanguage } from "@/context/language"
 import { ServerConnection } from "@/context/server"
 import { SessionTabAvatarView } from "@/pages/layout/session-tab-avatar"
+import { displayName, getProjectAvatarSource } from "@/pages/layout/helpers"
 import { sessionTitle } from "@/utils/session-title"
 import { shouldOpenSessionInBackground } from "../home-session-open"
 import {
@@ -25,10 +28,19 @@ import {
 } from "./home-session-groups"
 import { formatHomeSessionTime } from "./home-session-time"
 import type { HomeNamedGroup } from "./home-session-named-groups"
+import {
+  clampHomeSessionSwipe,
+  homeSessionSwipeAction,
+  homeSessionSwipeLock,
+} from "./home-session-swipe"
 import "./home-sessions-mobile.css"
 
 const HOME_SECTION_LABEL = "text-v2-text-text-muted [font-weight:440]"
 const HOME_SESSION_SEARCH_RESULTS_ID = "home-session-search-results"
+const HOME_MOBILE_ROUND_BUTTON = `
+  flex size-10 shrink-0 items-center justify-center rounded-full border-0
+  bg-v2-background-bg-layer-02 text-v2-icon-icon-base
+`
 
 // Middle-click or Cmd+click on macOS (Ctrl+click elsewhere) opens a session
 // tab in the background without navigating, matching browser conventions.
@@ -92,6 +104,60 @@ export type HomeSessionsViewProps = {
   onDeleteNamedGroup: (groupID: string, name: string) => void
   onMoveSession: (session: Session) => void
   onRemoveSessionFromGroup: (session: Session) => void
+  project: Accessor<LocalProject | undefined>
+  projects: Accessor<LocalProject[]>
+  onPickProject: (directory: string) => void
+  onAddProject: () => void
+  onCreateNamedGroup: () => void
+}
+
+function HomeMobileProjectPicker(props: HomeSessionsViewProps) {
+  const name = createMemo(() => {
+    const project = props.project()
+    return project ? displayName(project) : props.language.t("home.project.add")
+  })
+
+  return (
+    <MenuV2>
+      <MenuV2.Trigger
+        as="button"
+        type="button"
+        data-action="home-switch-project"
+        class={`
+          flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-full border-0
+          bg-v2-background-bg-layer-02 px-2 text-left
+        `}
+        aria-label={props.language.t("home.project.switch")}
+      >
+        <Show when={props.project()} fallback={<IconV2 name="folder-add-left" class="size-4 shrink-0" />}>
+          {(project) => (
+            <span data-component="home-mobile-project-avatar" class="shrink-0">
+              <ProjectAvatar
+                fallback={displayName(project())}
+                src={getProjectAvatarSource(project().id, project().icon)}
+                variant={getProjectAvatarVariant(project().icon?.color)}
+              />
+            </span>
+          )}
+        </Show>
+        <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[14px] text-v2-text-text-base [font-weight:530]">
+          {name()}
+        </span>
+        <IconV2 name="chevron-down" class="size-3 shrink-0 text-v2-icon-icon-muted" />
+      </MenuV2.Trigger>
+      <MenuV2.Portal>
+        <MenuV2.Content>
+          <For each={props.projects()}>
+            {(project) => (
+              <MenuV2.Item onSelect={() => props.onPickProject(project.worktree)}>{displayName(project)}</MenuV2.Item>
+            )}
+          </For>
+          <MenuV2.Separator />
+          <MenuV2.Item onSelect={() => props.onAddProject()}>{props.language.t("home.project.add")}</MenuV2.Item>
+        </MenuV2.Content>
+      </MenuV2.Portal>
+    </MenuV2>
+  )
 }
 
 export function HomeSessionsView(props: HomeSessionsViewProps) {
@@ -189,32 +255,40 @@ function HomeSessionsMobileView(props: HomeSessionsViewProps) {
         <Show
           when={props.searchFocused()}
           fallback={
-            <div class="flex h-12 items-center justify-end gap-2 pr-1">
+            <div class="flex h-12 items-center gap-2 pr-1">
+              <HomeMobileProjectPicker {...props} />
               <button
                 type="button"
-                class={`
-                  flex size-10 items-center justify-center rounded-full border-0
-                  bg-v2-background-bg-layer-02 text-v2-icon-icon-base
-                `}
+                class={HOME_MOBILE_ROUND_BUTTON}
                 aria-label={props.searchPlaceholder()}
                 onClick={props.onSearchFocus}
               >
                 <IconV2 name="magnifying-glass" />
               </button>
-              <Show when={props.canCreateSession()}>
-                <button
+              <MenuV2>
+                <MenuV2.Trigger
+                  as="button"
                   type="button"
                   data-action="home-new-session"
-                  class={`
-                    flex size-10 items-center justify-center rounded-full border-0
-                    bg-v2-background-bg-layer-02 text-v2-icon-icon-base
-                  `}
+                  class={HOME_MOBILE_ROUND_BUTTON}
                   aria-label={props.language.t("command.session.new")}
-                  onClick={props.onCreateSession}
                 >
                   <IconV2 name="plus" />
-                </button>
-              </Show>
+                </MenuV2.Trigger>
+                <MenuV2.Portal>
+                  <MenuV2.Content>
+                    <MenuV2.Item onSelect={() => props.onCreateSession()}>
+                      {props.language.t("command.session.new")}
+                    </MenuV2.Item>
+                    <MenuV2.Item onSelect={() => props.onCreateNamedGroup()}>
+                      {props.language.t("home.sessions.namedGroup.new")}
+                    </MenuV2.Item>
+                    <MenuV2.Item onSelect={() => props.onAddProject()}>
+                      {props.language.t("home.project.add")}
+                    </MenuV2.Item>
+                  </MenuV2.Content>
+                </MenuV2.Portal>
+              </MenuV2>
             </div>
           }
         >
@@ -376,6 +450,91 @@ function HomeSessionMobileClusterHeader(props: {
   )
 }
 
+function HomeSessionSwipe(props: {
+  canArchive: boolean
+  openLabel: string
+  archiveLabel: string
+  suppressClick: { current: boolean }
+  onOpen: () => void
+  onArchive: () => void
+  children: JSX.Element
+}) {
+  const [offset, setOffset] = createSignal(0)
+  const drag = {
+    id: undefined as number | undefined,
+    x: 0,
+    y: 0,
+    lock: undefined as "x" | "y" | undefined,
+    moved: false,
+  }
+
+  const end = (id: number) => {
+    if (drag.id !== id) return
+    drag.id = undefined
+    const action = homeSessionSwipeAction(offset())
+    setOffset(0)
+    if (drag.moved) props.suppressClick.current = true
+    if (action === "open") props.onOpen()
+    if (action === "archive") props.onArchive()
+  }
+
+  return (
+    <div
+      data-component="home-session-swipe"
+      onPointerDown={(event) => {
+        if (event.button !== 0) return
+        drag.id = event.pointerId
+        drag.x = event.clientX
+        drag.y = event.clientY
+        drag.lock = undefined
+        drag.moved = false
+      }}
+      onPointerMove={(event) => {
+        if (drag.id !== event.pointerId) return
+        const dx = event.clientX - drag.x
+        const dy = event.clientY - drag.y
+        if (!drag.lock) {
+          drag.lock = homeSessionSwipeLock(dx, dy)
+          if (drag.lock === "x") event.currentTarget.setPointerCapture(event.pointerId)
+          if (drag.lock !== "x") return
+        }
+        if (drag.lock !== "x") return
+        event.preventDefault()
+        drag.moved = true
+        setOffset(clampHomeSessionSwipe(dx, props.canArchive))
+      }}
+      onPointerUp={(event) => end(event.pointerId)}
+      onPointerCancel={(event) => {
+        if (drag.id !== event.pointerId) return
+        drag.id = undefined
+        setOffset(0)
+      }}
+      onLostPointerCapture={(event) => {
+        if (drag.id !== event.pointerId) return
+        end(event.pointerId)
+      }}
+    >
+      <div data-slot="home-session-swipe-open" aria-hidden="true">
+        <IconV2 name="outline-square-arrow" />
+        <span>{props.openLabel}</span>
+      </div>
+      <div data-slot="home-session-swipe-archive" aria-hidden="true">
+        <IconV2 name="archive" />
+        <span>{props.archiveLabel}</span>
+      </div>
+      <div
+        data-slot="home-session-swipe-row"
+        style={{
+          transform: `translateX(${offset()}px)`,
+          transition: drag.id === undefined ? "transform 160ms ease" : "none",
+        }}
+      >
+        {props.children}
+      </div>
+    </div>
+  )
+}
+
 function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessionRecord }) {
   const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
   const snippet = createMemo(() => props.snippet(props.record))
@@ -390,6 +549,14 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
   const grouped = () => props.sessionNamedGroup(props.record.session)
 
   return (
+    <HomeSessionSwipe
+      canArchive={props.canArchiveSession()}
+      openLabel={props.language.t("common.open")}
+      archiveLabel={props.language.t("common.archive")}
+      suppressClick={suppressClick}
+      onOpen={() => props.onOpenSession(props.record.session)}
+      onArchive={() => void props.onArchiveSession(props.record.session)}
+    >
     <HomeMobileContextMenu
       suppressClick={suppressClick}
       menu={() => (
@@ -484,6 +651,7 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
       </div>
     </button>
     </HomeMobileContextMenu>
+    </HomeSessionSwipe>
   )
 }
 

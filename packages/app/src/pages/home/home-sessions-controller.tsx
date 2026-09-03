@@ -31,7 +31,6 @@ import { homeSessionNeedsAttention } from "./home-session-attention"
 import {
   groupHomeSessions,
   clusterHomeSessions,
-  takeHomeClusterRecords,
   type HomeSessionGroup as GroupedHomeSessions,
 } from "./home-session-groups"
 import {
@@ -45,8 +44,6 @@ import { createHomeSessionClusterCollapse } from "./home-session-cluster-collaps
 import { lastSessionSnippet } from "./home-session-snippet"
 
 const HOME_SESSION_LIMIT = 64
-const HOME_CLUSTER_LIMIT = 16
-const HOME_CLUSTER_PER_DIRECTORY = 3
 export type HomeSessionRecord = {
   session: Session
   project: LocalProject
@@ -121,20 +118,6 @@ export function createHomeSessionsController(home: HomeController) {
     }),
   )
   const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
-  const clusterRecords = createMemo(() =>
-    takeHomeClusterRecords({
-      records: buildClusterSessionRecords({
-        sessions: indexedSessions,
-        projects: home.project.list,
-        projectByID,
-      }),
-      id: (record) => record.session.id,
-      projectKey: (record) => record.session.projectID || pathKey(record.project.worktree),
-      pinnedAt: pins.map(serverKey()),
-      limit: HOME_CLUSTER_LIMIT,
-      perDirectory: HOME_CLUSTER_PER_DIRECTORY,
-    }),
-  )
   const attentionIDs = createMemo(() => {
     const ids = new Set<string>()
     const conn = home.server.focused()
@@ -143,7 +126,7 @@ export function createHomeSessionsController(home: HomeController) {
     const server = ServerConnection.key(conn)
     const notif = notification.ensureServerState(server)
     const perm = permission.ensureServerState(server)
-    for (const record of clusterRecords()) {
+    for (const record of records()) {
       const [store] = ctx.sync.child(record.session.directory, { bootstrap: false })
       if (
         homeSessionNeedsAttention({
@@ -175,7 +158,7 @@ export function createHomeSessionsController(home: HomeController) {
   )
   const clusters = createMemo(() =>
     clusterHomeSessions({
-      records: clusterRecords(),
+      records: records(),
       id: (record) => record.session.id,
       namedGroup: (record) => named.groupOf(serverKey(), record.session.id),
       namedGroups: named.list(serverKey()),
@@ -286,7 +269,7 @@ export function createHomeSessionsController(home: HomeController) {
     session: {
       showProjectName: () => !home.project.selected(),
       server: () => home.selection.value().server,
-      canCreate: () => !!home.project.newSession() || clusterRecords().length > 0,
+      canCreate: () => !!home.project.newSession() || !!home.server.focused(),
       canArchive: () => !!home.server.focusedContext(),
       isPinned: (session: Session) => pins.isPinned(serverKey(), session.id),
       pin: (session: Session) => pins.toggle(serverKey(), session.id),
@@ -367,15 +350,20 @@ export function createHomeSessionsController(home: HomeController) {
         )
       },
       needsAttention: (session: Session) => attentionIDs().has(session.id),
+      createNamedGroup: () => {
+        promptNamedGroupName({
+          title: language.t("home.sessions.namedGroup.new"),
+          description: language.t("home.sessions.namedGroup.create.description"),
+          initial: "",
+          onSave: (name) => {
+            named.create(serverKey(), name)
+          },
+        })
+      },
       create: () => {
         if (home.project.newSession()) {
           home.project.openNewSession()
-          return
         }
-        const record = clusterRecords()[0]
-        const conn = home.server.focused()
-        if (!record || !conn) return
-        home.project.openProjectNewSession(conn, record.project.worktree)
       },
       open: (session: Session, options?: OpenSessionOptions) => {
         const directoryKey = pathKey(session.directory)
@@ -505,30 +493,6 @@ export function createHomeSessionsController(home: HomeController) {
         sessionHasOpenTab(tabs.store, home.selection.value().server, record.session),
     },
   }
-}
-
-function buildClusterSessionRecords(input: {
-  sessions: () => Session[]
-  projects: () => LocalProject[]
-  projectByID: () => Map<string, LocalProject>
-}) {
-  return [...new Map(input.sessions().map((session) => [session.id, session] as const)).values()]
-    .sort(compareSessionTime)
-    .map((session) => {
-      const directory = pathKey(session.directory)
-      const project =
-        input
-          .projects()
-          .find(
-            (item) =>
-              pathKey(item.worktree) === directory || item.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
-          ) ??
-        projectForSession(session, input.projects(), input.projectByID()) ?? {
-          worktree: session.directory,
-          expanded: false,
-        }
-      return { session, project, projectName: displayName(project) }
-    })
 }
 
 function directories(project: LocalProject) {

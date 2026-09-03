@@ -69,6 +69,7 @@ export function createHomeProjectsController(home: HomeController) {
       recentlyClosed: home.project.recentlyClosed,
       homedir: home.project.homedir,
       select: home.project.select,
+      pick: home.project.pick,
       add: home.project.add,
       openNewSession: home.project.openProjectNewSession,
       openTerminal: home.project.openProjectTerminal,

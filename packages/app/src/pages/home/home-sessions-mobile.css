@@ -27,20 +27,44 @@
   user-select: none;
 }
 
-[data-component="home-session-mobile-avatar"] [data-slot="project-avatar-surface"] {
-  border-radius: 14px;
-  font-size: 16px;
+[data-component="home-mobile-project-avatar"] [data-component="project-avatar-v2"] {
+  width: 28px;
+  height: 28px;
 }
 
-[data-slot="home-session-working-dot"] {
+[data-component="home-session-swipe"] {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+[data-slot="home-session-swipe-open"],
+[data-slot="home-session-swipe-archive"] {
   position: absolute;
-  z-index: 3;
-  width: 10px;
-  height: 10px;
-  right: -1px;
-  bottom: -1px;
-  border-radius: 9999px;
+  inset-block: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 50%;
+  padding: 0 16px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 530;
+}
+
+[data-slot="home-session-swipe-open"] {
+  inset-inline-start: 0;
   background: #34c759;
-  box-shadow: 0 0 0 2px var(--v2-background-bg-base);
-  pointer-events: none;
+}
+
+[data-slot="home-session-swipe-archive"] {
+  inset-inline-end: 0;
+  justify-content: flex-end;
+  background: #ff9500;
+}
+
+[data-slot="home-session-swipe-row"] {
+  position: relative;
+  z-index: 1;
+  background: var(--v2-background-bg-base);
 }
