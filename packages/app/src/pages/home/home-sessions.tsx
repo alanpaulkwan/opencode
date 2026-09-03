@@ -55,6 +55,12 @@ export function HomeSessions(props: {
       needsAttention={(record) => props.sessions.session.needsAttention(record.session)}
       isCollapsed={props.sessions.session.isCollapsed}
       onToggleCollapsed={props.sessions.session.toggleCollapsed}
+      sessionNamedGroup={props.sessions.session.sessionNamedGroup}
+      onNameUngroupedCluster={props.sessions.session.nameUngroupedCluster}
+      onRenameNamedGroup={props.sessions.session.renameNamedGroup}
+      onDeleteNamedGroup={props.sessions.session.deleteNamedGroup}
+      onMoveSession={props.sessions.session.moveSession}
+      onRemoveSessionFromGroup={props.sessions.session.removeSessionFromGroup}
     />
   )
 }

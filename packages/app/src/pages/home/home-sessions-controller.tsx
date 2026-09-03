@@ -29,6 +29,12 @@ import { deleteHomeSession, removedHomeSessionIDs } from "../home-session-delete
 import type { HomeController } from "./home-controller"
 import { homeSessionNeedsAttention } from "./home-session-attention"
 import { groupHomeSessions, clusterHomeSessions, type HomeSessionGroup as GroupedHomeSessions } from "./home-session-groups"
+import {
+  HomeNamedGroupDeleteDialog,
+  HomeNamedGroupMoveDialog,
+  HomeNamedGroupNameDialog,
+} from "./home-session-named-group-dialogs"
+import { createHomeSessionNamedGroups } from "./home-session-named-groups"
 import { createHomeSessionPins } from "./home-session-pins"
 import { createHomeSessionClusterCollapse } from "./home-session-cluster-collapse"
 import { lastSessionSnippet } from "./home-session-snippet"
@@ -52,7 +58,9 @@ export function createHomeSessionsController(home: HomeController) {
   const notification = useNotification()
   const permission = usePermission()
   const pins = createHomeSessionPins()
+  const named = createHomeSessionNamedGroups()
   const collapse = createHomeSessionClusterCollapse()
+  const serverKey = () => home.selection.value().server
   const allProjectDirectories = createMemo(() => home.project.list().flatMap(directories))
   const projectDirectories = createMemo(() => {
     const project = home.project.selected()
@@ -155,12 +163,34 @@ export function createHomeSessionsController(home: HomeController) {
     clusterHomeSessions({
       records: clusterRecords(),
       id: (record) => record.session.id,
-      projectKey: (record) => pathKey(record.project.worktree),
-      projectTitle: (record) => record.projectName,
-      pinnedAt: pins.map(home.selection.value().server),
+      namedGroup: (record) => named.groupOf(serverKey(), record.session.id),
+      namedGroups: named.list(serverKey()),
+      ungroupedTitle: language.t("home.sessions.namedGroup.ungrouped"),
+      pinnedAt: pins.map(serverKey()),
       pinnedTitle: language.t("home.sessions.group.pinned"),
     }),
   )
+
+  const promptNamedGroupName = (input: {
+    title: string
+    description: string
+    initial: string
+    onSave: (name: string) => void
+  }) => {
+    void dialog.show(() => (
+      <HomeNamedGroupNameDialog
+        language={language}
+        title={input.title}
+        description={input.description}
+        initial={input.initial}
+        onSave={(name) => {
+          input.onSave(name)
+          dialog.close()
+        }}
+        onClose={() => dialog.close()}
+      />
+    ))
+  }
   const prefetched = new Set<string>()
 
   createEffect(() => {
@@ -244,10 +274,71 @@ export function createHomeSessionsController(home: HomeController) {
       server: () => home.selection.value().server,
       canCreate: () => !!home.project.newSession() || clusterRecords().length > 0,
       canArchive: () => !!home.server.focusedContext(),
-      isPinned: (session: Session) => pins.isPinned(home.selection.value().server, session.id),
-      pin: (session: Session) => pins.toggle(home.selection.value().server, session.id),
+      isPinned: (session: Session) => pins.isPinned(serverKey(), session.id),
+      pin: (session: Session) => pins.toggle(serverKey(), session.id),
       isCollapsed: collapse.isCollapsed,
       toggleCollapsed: collapse.toggle,
+      sessionNamedGroup: (session: Session) => named.groupOf(serverKey(), session.id),
+      nameUngroupedCluster: (group: HomeSessionGroup) => {
+        const sessionIDs = group.sessions.map((record) => record.session.id)
+        promptNamedGroupName({
+          title: language.t("home.sessions.namedGroup.nameThis"),
+          description: language.t("home.sessions.namedGroup.create.description"),
+          initial: "",
+          onSave: (name) => {
+            const created = named.create(serverKey(), name)
+            if (!created) return
+            named.assignMany(serverKey(), sessionIDs, created.id)
+          },
+        })
+      },
+      renameNamedGroup: (groupID: string, currentName: string) => {
+        promptNamedGroupName({
+          title: language.t("home.sessions.namedGroup.rename"),
+          description: language.t("home.sessions.namedGroup.rename.description"),
+          initial: currentName,
+          onSave: (name) => named.rename(serverKey(), groupID, name),
+        })
+      },
+      deleteNamedGroup: (groupID: string, name: string) => {
+        void dialog.show(() => (
+          <HomeNamedGroupDeleteDialog
+            language={language}
+            name={name}
+            onConfirm={() => {
+              named.remove(serverKey(), groupID)
+              dialog.close()
+            }}
+            onClose={() => dialog.close()}
+          />
+        ))
+      },
+      moveSession: (session: Session) => {
+        void dialog.show(() => (
+          <HomeNamedGroupMoveDialog
+            language={language}
+            groups={named.list(serverKey())}
+            currentID={named.groupOf(serverKey(), session.id)?.id}
+            onSelect={(groupID) => {
+              named.assign(serverKey(), session.id, groupID)
+              dialog.close()
+            }}
+            onCreate={() => {
+              promptNamedGroupName({
+                title: language.t("home.sessions.namedGroup.new"),
+                description: language.t("home.sessions.namedGroup.create.description"),
+                initial: "",
+                onSave: (name) => {
+                  const created = named.create(serverKey(), name)
+                  if (created) named.assign(serverKey(), session.id, created.id)
+                },
+              })
+            }}
+            onClose={() => dialog.close()}
+          />
+        ))
+      },
+      removeSessionFromGroup: (session: Session) => named.unassign(serverKey(), session.id),
       snippet: (record: HomeSessionRecord) => {
         const ctx = home.server.focusedContext()
         if (!ctx) return ""

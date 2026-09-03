@@ -20,3 +20,27 @@
   box-shadow: 0 0 0 2px var(--v2-background-bg-base);
   pointer-events: none;
 }
+
+[data-component="home-session-row"] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[data-component="home-session-mobile-avatar"] [data-slot="project-avatar-surface"] {
+  border-radius: 14px;
+  font-size: 16px;
+}
+
+[data-slot="home-session-working-dot"] {
+  position: absolute;
+  z-index: 3;
+  width: 10px;
+  height: 10px;
+  right: -1px;
+  bottom: -1px;
+  border-radius: 9999px;
+  background: #34c759;
+  box-shadow: 0 0 0 2px var(--v2-background-bg-base);
+  pointer-events: none;
+}

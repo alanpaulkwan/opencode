@@ -1,10 +1,11 @@
 import type { Session } from "@opencode-ai/sdk/v2/client"
-import { type Accessor, createMemo, For, Show, Suspense } from "solid-js"
+import { type Accessor, createMemo, For, Show, Suspense, type JSX } from "solid-js"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
+import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
 import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
 import { useLanguage } from "@/context/language"
 import { ServerConnection } from "@/context/server"
@@ -18,7 +19,12 @@ import {
   type HomeSessionRecord,
   type OpenSessionOptions,
 } from "./home-sessions-controller"
+import {
+  HOME_SESSION_UNGROUPED_CLUSTER,
+  namedGroupIdFromCluster,
+} from "./home-session-groups"
 import { formatHomeSessionTime } from "./home-session-time"
+import type { HomeNamedGroup } from "./home-session-named-groups"
 import "./home-sessions-mobile.css"
 
 const HOME_SECTION_LABEL = "text-v2-text-text-muted [font-weight:440]"
@@ -80,6 +86,12 @@ export type HomeSessionsViewProps = {
   needsAttention: (record: HomeSessionRecord) => boolean
   isCollapsed: (id: HomeSessionGroup["id"]) => boolean
   onToggleCollapsed: (id: HomeSessionGroup["id"]) => void
+  sessionNamedGroup: (session: Session) => HomeNamedGroup | undefined
+  onNameUngroupedCluster: (group: HomeSessionGroup) => void
+  onRenameNamedGroup: (groupID: string, currentName: string) => void
+  onDeleteNamedGroup: (groupID: string, name: string) => void
+  onMoveSession: (session: Session) => void
+  onRemoveSessionFromGroup: (session: Session) => void
 }
 
 export function HomeSessionsView(props: HomeSessionsViewProps) {
@@ -257,6 +269,7 @@ function HomeSessionsMobileView(props: HomeSessionsViewProps) {
                         collapseLabel={props.language.t("home.sessions.cluster.collapse", { name: group.title })}
                         onSetRef={(element) => props.onSetHeader(group.id, element)}
                         onToggle={() => props.onToggleCollapsed(group.id)}
+                        menu={mobileClusterMenu(props, group)}
                       />
                       <Show when={!collapsed()}>
                         <div class="flex min-w-0 flex-col">
@@ -277,6 +290,49 @@ function HomeSessionsMobileView(props: HomeSessionsViewProps) {
   )
 }
 
+function mobileClusterMenu(props: HomeSessionsViewProps, group: HomeSessionGroup) {
+  if (group.id === HOME_SESSION_UNGROUPED_CLUSTER) {
+    return (
+      <MenuV2.Item onSelect={() => props.onNameUngroupedCluster(group)}>
+        {props.language.t("home.sessions.namedGroup.nameThis")}
+      </MenuV2.Item>
+    )
+  }
+  const namedID = namedGroupIdFromCluster(group.id)
+  if (!namedID) return
+  return (
+    <>
+      <MenuV2.Item onSelect={() => props.onRenameNamedGroup(namedID, group.title)}>
+        {props.language.t("common.rename")}
+      </MenuV2.Item>
+      <MenuV2.Item onSelect={() => props.onDeleteNamedGroup(namedID, group.title)}>
+        {props.language.t("home.sessions.namedGroup.delete")}
+      </MenuV2.Item>
+    </>
+  )
+}
+
+function HomeMobileContextMenu(props: { menu?: JSX.Element; children: JSX.Element; suppressClick: { current: boolean } }) {
+  return (
+    <Show when={props.menu} fallback={props.children}>
+      {(menu) => (
+        <MenuV2.Context
+          onOpenChange={(open) => {
+            if (open) props.suppressClick.current = true
+          }}
+        >
+          <MenuV2.Context.Trigger as="div" class="w-full min-w-0">
+            {props.children}
+          </MenuV2.Context.Trigger>
+          <MenuV2.Context.Portal>
+            <MenuV2.Context.Content>{menu()}</MenuV2.Context.Content>
+          </MenuV2.Context.Portal>
+        </MenuV2.Context>
+      )}
+    </Show>
+  )
+}
+
 function HomeSessionMobileClusterHeader(props: {
   title: string
   collapsed: boolean
@@ -284,27 +340,37 @@ function HomeSessionMobileClusterHeader(props: {
   collapseLabel: string
   onSetRef: (element: HTMLDivElement) => void
   onToggle: () => void
+  menu?: JSX.Element
 }) {
+  const suppressClick = { current: false }
   return (
-    <div ref={props.onSetRef} class="px-3 pb-1">
-      <button
-        type="button"
-        class={`
-          flex items-center gap-1 border-0 bg-transparent p-0
-          text-[13px] leading-4 tracking-[0.01em] lowercase
-          text-v2-text-text-muted [font-weight:440]
-        `}
-        aria-expanded={!props.collapsed}
-        aria-label={props.collapsed ? props.expandLabel : props.collapseLabel}
-        onClick={props.onToggle}
-      >
-        <span>{props.title}</span>
-        <IconV2
-          name="chevron-down"
-          class={`size-3 text-v2-icon-icon-muted transition-transform ${props.collapsed ? "-rotate-90" : ""}`}
-        />
-      </button>
-    </div>
+    <HomeMobileContextMenu menu={props.menu} suppressClick={suppressClick}>
+      <div ref={props.onSetRef} class="px-3 pb-1">
+        <button
+          type="button"
+          class={`
+            flex items-center gap-1 border-0 bg-transparent p-0
+            text-[13px] leading-4 tracking-[0.01em] lowercase
+            text-v2-text-text-muted [font-weight:440]
+          `}
+          aria-expanded={!props.collapsed}
+          aria-label={props.collapsed ? props.expandLabel : props.collapseLabel}
+          onClick={() => {
+            if (suppressClick.current) {
+              suppressClick.current = false
+              return
+            }
+            props.onToggle()
+          }}
+        >
+          <span>{props.title}</span>
+          <IconV2
+            name="chevron-down"
+            class={`size-3 text-v2-icon-icon-muted transition-transform ${props.collapsed ? "-rotate-90" : ""}`}
+          />
+        </button>
+      </div>
+    </HomeMobileContextMenu>
   )
 }
 
@@ -318,8 +384,39 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
       props.language.intl(),
     ),
   )
+  const suppressClick = { current: false }
+  const grouped = () => props.sessionNamedGroup(props.record.session)
 
   return (
+    <HomeMobileContextMenu
+      suppressClick={suppressClick}
+      menu={
+        <>
+          <MenuV2.Item onSelect={() => props.onMoveSession(props.record.session)}>
+            {props.language.t("home.sessions.namedGroup.move")}
+          </MenuV2.Item>
+          <Show when={grouped()}>
+            <MenuV2.Item onSelect={() => props.onRemoveSessionFromGroup(props.record.session)}>
+              {props.language.t("home.sessions.namedGroup.remove")}
+            </MenuV2.Item>
+          </Show>
+          <MenuV2.Separator />
+          <MenuV2.Item onSelect={() => props.onPinSession(props.record.session)}>
+            {props.isPinned(props.record.session)
+              ? props.language.t("common.unpin")
+              : props.language.t("common.pin")}
+          </MenuV2.Item>
+          <Show when={props.canArchiveSession()}>
+            <MenuV2.Item onSelect={() => void props.onArchiveSession(props.record.session)}>
+              {props.language.t("common.archive")}
+            </MenuV2.Item>
+          </Show>
+          <MenuV2.Item onSelect={() => props.onDeleteSession(props.record.session)}>
+            {props.language.t("common.delete")}
+          </MenuV2.Item>
+        </>
+      }
+    >
     <button
       type="button"
       data-component="home-session-row"
@@ -330,7 +427,15 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
       onMouseDown={(event) => {
         if (event.button === 1) event.preventDefault()
       }}
-      onClick={(event) => props.onOpenSession(props.record.session, { background: isBackgroundOpen(event) })}
+      onClick={(event) => {
+        if (suppressClick.current) {
+          suppressClick.current = false
+          event.preventDefault()
+          event.stopPropagation()
+          return
+        }
+        props.onOpenSession(props.record.session, { background: isBackgroundOpen(event) })
+      }}
       onAuxClick={(event) => {
         if (!isBackgroundOpen(event)) return
         event.preventDefault()
@@ -376,6 +481,7 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
         </Show>
       </div>
     </button>
+    </HomeMobileContextMenu>
   )
 }
 

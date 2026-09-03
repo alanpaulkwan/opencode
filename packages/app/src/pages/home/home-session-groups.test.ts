@@ -55,46 +55,72 @@ describe("groupHomeSessions", () => {
 })
 
 describe("clusterHomeSessions", () => {
-  const id = (record: { id: string }) => record.id
-  const projectKey = (record: { project: string }) => record.project
-  const projectTitle = (record: { project: string }) => record.project
+  type Record = { id: string; group?: string; project?: string }
+  const id = (record: Record) => record.id
+  const groups = [
+    { id: "research", name: "research" },
+    { id: "ops", name: "active management" },
+  ]
+  const namedGroup = (record: Record) => groups.find((group) => group.id === record.group)
 
-  test("moves the newest session's project cluster to the top", () => {
-    const groups = clusterHomeSessions({
+  test("puts named groups with the newest session first, not project folders", () => {
+    const clustered = clusterHomeSessions({
       records: [
-        { id: "research-new", project: "research" },
-        { id: "ops-old", project: "ops" },
-        { id: "research-old", project: "research" },
+        { id: "research-new", group: "research", project: "residual_momentum_grok" },
+        { id: "ops-old", group: "ops", project: "fintent_mna" },
+        { id: "research-old", group: "research", project: "residual_momentum_grok" },
       ],
       id,
-      projectKey,
-      projectTitle,
+      namedGroup,
+      namedGroups: groups,
+      ungroupedTitle: "Ungrouped",
       pinnedAt: {},
       pinnedTitle: "Pinned",
     })
-    expect(groups.map((group) => [group.id, group.sessions.map((item) => item.id)])).toEqual([
-      ["project:research", ["research-new", "research-old"]],
-      ["project:ops", ["ops-old"]],
+    expect(clustered.map((group) => [group.id, group.title, group.sessions.map((item) => item.id)])).toEqual([
+      ["named:research", "research", ["research-new", "research-old"]],
+      ["named:ops", "active management", ["ops-old"]],
     ])
   })
 
-  test("keeps pinned sessions in a top cluster and out of their project", () => {
-    const groups = clusterHomeSessions({
+  test("keeps unassigned sessions in one ungrouped cluster instead of git folder names", () => {
+    const clustered = clusterHomeSessions({
       records: [
-        { id: "ops-new", project: "ops" },
-        { id: "pin", project: "research" },
-        { id: "research-old", project: "research" },
+        { id: "a", project: "residual_momentum_grok" },
+        { id: "b", project: "fintent_mna" },
       ],
       id,
-      projectKey,
-      projectTitle,
+      namedGroup,
+      namedGroups: groups,
+      ungroupedTitle: "Ungrouped",
+      pinnedAt: {},
+      pinnedTitle: "Pinned",
+    })
+    expect(clustered.map((group) => [group.id, group.title, group.sessions.map((item) => item.id)])).toEqual([
+      ["ungrouped", "Ungrouped", ["a", "b"]],
+      ["named:research", "research", []],
+      ["named:ops", "active management", []],
+    ])
+  })
+
+  test("keeps pinned sessions in a top cluster and out of their named group", () => {
+    const clustered = clusterHomeSessions({
+      records: [
+        { id: "ops-new", group: "ops" },
+        { id: "pin", group: "research" },
+        { id: "research-old", group: "research" },
+      ],
+      id,
+      namedGroup,
+      namedGroups: groups,
+      ungroupedTitle: "Ungrouped",
       pinnedAt: { pin: 5 },
       pinnedTitle: "Pinned",
     })
-    expect(groups.map((group) => [group.id, group.sessions.map((item) => item.id)])).toEqual([
+    expect(clustered.map((group) => [group.id, group.sessions.map((item) => item.id)])).toEqual([
       ["pinned", ["pin"]],
-      ["project:ops", ["ops-new"]],
-      ["project:research", ["research-old"]],
+      ["named:ops", ["ops-new"]],
+      ["named:research", ["research-old"]],
     ])
   })
 })
