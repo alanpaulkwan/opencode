@@ -1,17 +1,20 @@
+import type { Accessor } from "solid-js"
 import type { HomeScrollController } from "./home-scroll-controller"
 import type { HomeSessionSearchController } from "./home-session-search-controller"
-import type { HomeSessionsController } from "./home-sessions-controller"
+import type { HomeSessionGroup, HomeSessionsController } from "./home-sessions-controller"
 import { HomeSessionsView } from "./home-sessions-view"
 
 export function HomeSessions(props: {
   sessions: HomeSessionsController
   search: HomeSessionSearchController
   scroll: HomeScrollController
+  groups: Accessor<HomeSessionGroup[]>
+  compact: Accessor<boolean>
 }) {
   return (
     <HomeSessionsView
       language={props.sessions.copy.language}
-      groups={props.sessions.data.groups}
+      groups={props.groups}
       showProjectName={props.sessions.session.showProjectName}
       server={props.sessions.session.server}
       canCreateSession={props.sessions.session.canCreate}
@@ -19,6 +22,7 @@ export function HomeSessions(props: {
       searchValue={props.search.query.value}
       searchPlaceholder={props.search.query.placeholder}
       searchOpen={props.search.query.open}
+      searchFocused={props.search.query.focused}
       searchLoading={props.search.result.loading}
       searchResults={props.search.result.list}
       searchActive={props.search.result.active}
@@ -46,6 +50,11 @@ export function HomeSessions(props: {
       onSearchSelectActive={props.search.result.selectActive}
       onSearchHighlight={props.search.result.highlight}
       onSearchSelect={props.search.result.select}
+      compact={props.compact}
+      snippet={props.sessions.session.snippet}
+      needsAttention={(record) => props.sessions.session.needsAttention(record.session)}
+      isCollapsed={props.sessions.session.isCollapsed}
+      onToggleCollapsed={props.sessions.session.toggleCollapsed}
     />
   )
 }

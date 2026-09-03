@@ -28,8 +28,10 @@ import { archiveHomeSession } from "../home-session-archive"
 import { deleteHomeSession, removedHomeSessionIDs } from "../home-session-delete"
 import type { HomeController } from "./home-controller"
 import { homeSessionNeedsAttention } from "./home-session-attention"
-import { groupHomeSessions, type HomeSessionGroup as GroupedHomeSessions } from "./home-session-groups"
+import { groupHomeSessions, clusterHomeSessions, type HomeSessionGroup as GroupedHomeSessions } from "./home-session-groups"
 import { createHomeSessionPins } from "./home-session-pins"
+import { createHomeSessionClusterCollapse } from "./home-session-cluster-collapse"
+import { lastSessionSnippet } from "./home-session-snippet"
 
 const HOME_SESSION_LIMIT = 64
 export type HomeSessionRecord = {
@@ -50,9 +52,11 @@ export function createHomeSessionsController(home: HomeController) {
   const notification = useNotification()
   const permission = usePermission()
   const pins = createHomeSessionPins()
+  const collapse = createHomeSessionClusterCollapse()
+  const allProjectDirectories = createMemo(() => home.project.list().flatMap(directories))
   const projectDirectories = createMemo(() => {
     const project = home.project.selected()
-    if (!project) return home.project.list().flatMap(directories)
+    if (!project) return allProjectDirectories()
     return directories(project)
   })
   const projectByID = createMemo(
@@ -102,6 +106,14 @@ export function createHomeSessionsController(home: HomeController) {
     }),
   )
   const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
+  const clusterRecords = createMemo(() =>
+    buildHomeSessionRecords({
+      sessions: indexedSessions,
+      projectDirectories: allProjectDirectories,
+      projects: home.project.list,
+      projectByID,
+    }).slice(0, HOME_SESSION_LIMIT),
+  )
   const attentionIDs = createMemo(() => {
     const ids = new Set<string>()
     const conn = home.server.focused()
@@ -110,7 +122,7 @@ export function createHomeSessionsController(home: HomeController) {
     const server = ServerConnection.key(conn)
     const notif = notification.ensureServerState(server)
     const perm = permission.ensureServerState(server)
-    for (const record of records()) {
+    for (const record of clusterRecords()) {
       const [store] = ctx.sync.child(record.session.directory, { bootstrap: false })
       if (
         homeSessionNeedsAttention({
@@ -138,6 +150,16 @@ export function createHomeSessionsController(home: HomeController) {
         attention: language.t("home.sessions.group.attention"),
         older: language.t("home.sessions.group.older"),
       },
+    }),
+  )
+  const clusters = createMemo(() =>
+    clusterHomeSessions({
+      records: clusterRecords(),
+      id: (record) => record.session.id,
+      projectKey: (record) => pathKey(record.project.worktree),
+      projectTitle: (record) => record.projectName,
+      pinnedAt: pins.map(home.selection.value().server),
+      pinnedTitle: language.t("home.sessions.group.pinned"),
     }),
   )
   const prefetched = new Set<string>()
@@ -214,6 +236,7 @@ export function createHomeSessionsController(home: HomeController) {
     data: {
       records,
       groups,
+      clusters,
       loading: () => sessionLoad.isLoading,
       searchRecords: allRecords,
     },
@@ -224,6 +247,22 @@ export function createHomeSessionsController(home: HomeController) {
       canArchive: () => !!home.server.focusedContext(),
       isPinned: (session: Session) => pins.isPinned(home.selection.value().server, session.id),
       pin: (session: Session) => pins.toggle(home.selection.value().server, session.id),
+      isCollapsed: collapse.isCollapsed,
+      toggleCollapsed: collapse.toggle,
+      snippet: (record: HomeSessionRecord) => {
+        const ctx = home.server.focusedContext()
+        if (!ctx) return ""
+        const fromMessages = lastSessionSnippet(
+          ctx.sync.session.data.message[record.session.id],
+          ctx.sync.session.data.part,
+        )
+        if (fromMessages) return fromMessages
+        return lastSessionSnippet(
+          ctx.sync.session.data.session_message[record.session.id],
+          ctx.sync.session.data.part,
+        )
+      },
+      needsAttention: (session: Session) => attentionIDs().has(session.id),
       create: home.project.openNewSession,
       open: (session: Session, options?: OpenSessionOptions) => {
         const directoryKey = pathKey(session.directory)

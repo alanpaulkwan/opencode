@@ -506,6 +506,12 @@ export const dict = {
   "context.systemPrompt.title": "System Prompt",
   "context.rawMessages.title": "Raw messages",
   "context.export.session": "Export session",
+  "context.export.format.pdf": "PDF",
+  "context.export.format.json": "JSON",
+  "context.export.format.markdown": "Markdown",
+  "context.export.format.html": "HTML",
+  "dialog.export.title": "Export session",
+  "dialog.export.description": "Choose a format",
 
   "context.stats.session": "Session",
   "context.stats.messages": "Messages",
@@ -678,6 +684,8 @@ export const dict = {
   "home.sessions.group.older": "Older",
   "home.sessions.group.pinned": "Pinned",
   "home.sessions.group.attention": "Needs attention",
+  "home.sessions.cluster.collapse": "Collapse {{name}}",
+  "home.sessions.cluster.expand": "Expand {{name}}",
   "home.providerTip": "Connect to 75+ providers to use other models, including Claude, GPT, Gemini, etc",
 
   "session.tab.session": "Session",

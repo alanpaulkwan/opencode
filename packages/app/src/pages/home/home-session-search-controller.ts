@@ -79,6 +79,7 @@ export function createHomeSessionSearchController(home: HomeController, sessions
       value: () => state.value,
       placeholder,
       open,
+      focused: () => state.focused,
       focus,
       input: (value: string) => setState({ value, highlighted: "" }),
       close,
@@ -105,7 +106,10 @@ export function createHomeSessionSearchController(home: HomeController, sessions
     },
     element: {
       setRoot: (element: HTMLDivElement) => (root = element),
-      setInput: (element: HTMLInputElement) => (input = element),
+      setInput: (element: HTMLInputElement) => {
+        input = element
+        if (state.focused) element.focus()
+      },
       setList: (element: HTMLDivElement) => (list = element),
     },
   }

@@ -18,6 +18,8 @@ import {
   type HomeSessionRecord,
   type OpenSessionOptions,
 } from "./home-sessions-controller"
+import { formatHomeSessionTime } from "./home-session-time"
+import "./home-sessions-mobile.css"
 
 const HOME_SECTION_LABEL = "text-v2-text-text-muted [font-weight:440]"
 const HOME_SESSION_SEARCH_RESULTS_ID = "home-session-search-results"
@@ -45,6 +47,7 @@ export type HomeSessionsViewProps = {
   searchValue: Accessor<string>
   searchPlaceholder: Accessor<string>
   searchOpen: Accessor<boolean>
+  searchFocused: Accessor<boolean>
   searchLoading: Accessor<boolean>
   searchResults: Accessor<HomeSessionRecord[]>
   searchActive: Accessor<string>
@@ -72,9 +75,22 @@ export type HomeSessionsViewProps = {
   onSearchSelectActive: () => void
   onSearchHighlight: (record: HomeSessionRecord) => void
   onSearchSelect: (record: HomeSessionRecord, options?: OpenSessionOptions) => void
+  compact: Accessor<boolean>
+  snippet: (record: HomeSessionRecord) => string
+  needsAttention: (record: HomeSessionRecord) => boolean
+  isCollapsed: (id: HomeSessionGroup["id"]) => boolean
+  onToggleCollapsed: (id: HomeSessionGroup["id"]) => void
 }
 
 export function HomeSessionsView(props: HomeSessionsViewProps) {
+  return (
+    <Show when={props.compact()} fallback={<HomeSessionsDesktopView {...props} />}>
+      <HomeSessionsMobileView {...props} />
+    </Show>
+  )
+}
+
+function HomeSessionsDesktopView(props: HomeSessionsViewProps) {
   return (
     <section
       ref={props.onSetHoverTarget}
@@ -147,6 +163,219 @@ export function HomeSessionsView(props: HomeSessionsViewProps) {
         </Suspense>
       </div>
     </section>
+  )
+}
+
+function HomeSessionsMobileView(props: HomeSessionsViewProps) {
+  return (
+    <section
+      ref={props.onSetHoverTarget}
+      class="min-h-0 min-w-0 flex-1 flex flex-col"
+      aria-label={props.language.t("sidebar.project.recentSessions")}
+    >
+      <div class="sticky top-0 z-30 shrink-0 bg-v2-background-bg-base px-1 pt-2 pb-1" onWheel={props.onWheel}>
+        <Show
+          when={props.searchFocused()}
+          fallback={
+            <div class="flex h-12 items-center justify-end gap-2 pr-1">
+              <button
+                type="button"
+                class={`
+                  flex size-10 items-center justify-center rounded-full border-0
+                  bg-v2-background-bg-layer-02 text-v2-icon-icon-base
+                `}
+                aria-label={props.searchPlaceholder()}
+                onClick={props.onSearchFocus}
+              >
+                <IconV2 name="magnifying-glass" />
+              </button>
+              <Show when={props.canCreateSession()}>
+                <button
+                  type="button"
+                  data-action="home-new-session"
+                  class={`
+                    flex size-10 items-center justify-center rounded-full border-0
+                    bg-v2-background-bg-layer-02 text-v2-icon-icon-base
+                  `}
+                  aria-label={props.language.t("command.session.new")}
+                  onClick={props.onCreateSession}
+                >
+                  <IconV2 name="plus" />
+                </button>
+              </Show>
+            </div>
+          }
+        >
+          <div class="flex items-center gap-2">
+            <div class="min-w-0 flex-1">
+              <HomeSessionSearch {...props} />
+            </div>
+            <button
+              type="button"
+              class="shrink-0 border-0 bg-transparent px-2 text-[13px] text-v2-text-text-muted [font-weight:530]"
+              onClick={props.onSearchClose}
+            >
+              {props.language.t("common.cancel")}
+            </button>
+          </div>
+        </Show>
+      </div>
+      <div class="pointer-events-none sticky top-[56px] z-40 h-0">
+        <div
+          ref={props.onSetThumbTrack}
+          data-component="home-session-scroll-track"
+          class="relative ml-auto h-[calc(100cqh-56px)] w-3"
+        />
+      </div>
+      <div class="min-h-[calc(100cqh-56px)]">
+        <Suspense
+          fallback={
+            <div class="pt-3">
+              <HomeSessionSkeleton label={props.language.t("common.loading")} />
+            </div>
+          }
+        >
+          <Show
+            when={props.groups().length > 0}
+            fallback={
+              <HomeSessionsEmpty
+                onNewSession={props.canCreateSession() ? props.onCreateSession : undefined}
+                language={props.language}
+              />
+            }
+          >
+            <div ref={props.onSetContent} class="flex flex-col px-1 pt-2 pb-24">
+              <For each={props.groups()}>
+                {(group, index) => {
+                  const collapsed = () => props.isCollapsed(group.id)
+                  return (
+                    <div class={index() === 0 ? "" : "mt-5"}>
+                      <HomeSessionMobileClusterHeader
+                        title={group.title}
+                        collapsed={collapsed()}
+                        expandLabel={props.language.t("home.sessions.cluster.expand", { name: group.title })}
+                        collapseLabel={props.language.t("home.sessions.cluster.collapse", { name: group.title })}
+                        onSetRef={(element) => props.onSetHeader(group.id, element)}
+                        onToggle={() => props.onToggleCollapsed(group.id)}
+                      />
+                      <Show when={!collapsed()}>
+                        <div class="flex min-w-0 flex-col">
+                          <For each={group.sessions}>
+                            {(record) => <HomeSessionMobileRow {...props} record={record} />}
+                          </For>
+                        </div>
+                      </Show>
+                    </div>
+                  )
+                }}
+              </For>
+            </div>
+          </Show>
+        </Suspense>
+      </div>
+    </section>
+  )
+}
+
+function HomeSessionMobileClusterHeader(props: {
+  title: string
+  collapsed: boolean
+  expandLabel: string
+  collapseLabel: string
+  onSetRef: (element: HTMLDivElement) => void
+  onToggle: () => void
+}) {
+  return (
+    <div ref={props.onSetRef} class="px-3 pb-1">
+      <button
+        type="button"
+        class={`
+          flex items-center gap-1 border-0 bg-transparent p-0
+          text-[13px] leading-4 tracking-[0.01em] lowercase
+          text-v2-text-text-muted [font-weight:440]
+        `}
+        aria-expanded={!props.collapsed}
+        aria-label={props.collapsed ? props.expandLabel : props.collapseLabel}
+        onClick={props.onToggle}
+      >
+        <span>{props.title}</span>
+        <IconV2
+          name="chevron-down"
+          class={`size-3 text-v2-icon-icon-muted transition-transform ${props.collapsed ? "-rotate-90" : ""}`}
+        />
+      </button>
+    </div>
+  )
+}
+
+function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessionRecord }) {
+  const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
+  const snippet = createMemo(() => props.snippet(props.record))
+  const timestamp = createMemo(() =>
+    formatHomeSessionTime(
+      props.record.session.time.updated ?? props.record.session.time.created,
+      Date.now(),
+      props.language.intl(),
+    ),
+  )
+
+  return (
+    <button
+      type="button"
+      data-component="home-session-row"
+      class={`
+        flex min-h-[64px] w-full min-w-0 items-center gap-3 border-0 bg-transparent px-3 py-2 text-left
+        hover:bg-v2-overlay-simple-overlay-hover focus-visible:bg-v2-overlay-simple-overlay-hover focus-visible:outline-none
+      `}
+      onMouseDown={(event) => {
+        if (event.button === 1) event.preventDefault()
+      }}
+      onClick={(event) => props.onOpenSession(props.record.session, { background: isBackgroundOpen(event) })}
+      onAuxClick={(event) => {
+        if (!isBackgroundOpen(event)) return
+        event.preventDefault()
+        props.onOpenSession(props.record.session, { background: true })
+      }}
+    >
+      <HomeSessionStatusController
+        server={props.server}
+        record={props.record}
+        isOpenTab={props.isOpenTab}
+        render={(state) => (
+          <div
+            data-component="home-session-mobile-avatar"
+            class="relative shrink-0"
+            classList={{ "opacity-90": state.loading() }}
+          >
+            <SessionTabAvatarView
+              project={props.record.project}
+              directory={props.record.session.directory}
+              revealProjectOnHover={false}
+              unread={state.unread()}
+              loading={false}
+            />
+            <Show when={state.loading() || props.needsAttention(props.record)}>
+              <span data-slot="home-session-working-dot" aria-hidden="true" />
+            </Show>
+          </div>
+        )}
+      />
+      <div class="min-w-0 flex-1 py-0.5">
+        <div class="flex min-w-0 items-baseline gap-2">
+          <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[16px] leading-5 text-v2-text-text-base [font-weight:600]">
+            {title()}
+          </span>
+          <span class="shrink-0 text-[12px] leading-4 text-v2-text-text-faint [font-weight:440]">{timestamp()}</span>
+        </div>
+        <Show when={snippet()}>
+          {(text) => (
+            <p class="mt-0.5 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[14px] leading-5 text-v2-text-text-muted [font-weight:440]">
+              {text()}
+            </p>
+          )}
+        </Show>
+      </div>
+    </button>
   )
 }
 
