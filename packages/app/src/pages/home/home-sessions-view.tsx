@@ -292,7 +292,7 @@ function HomeSessionsMobileView(props: HomeSessionsViewProps) {
 
 function mobileClusterMenu(props: HomeSessionsViewProps, group: HomeSessionGroup) {
   if (group.id === HOME_SESSION_UNGROUPED_CLUSTER) {
-    return (
+    return () => (
       <MenuV2.Item onSelect={() => props.onNameUngroupedCluster(group)}>
         {props.language.t("home.sessions.namedGroup.nameThis")}
       </MenuV2.Item>
@@ -300,7 +300,7 @@ function mobileClusterMenu(props: HomeSessionsViewProps, group: HomeSessionGroup
   }
   const namedID = namedGroupIdFromCluster(group.id)
   if (!namedID) return
-  return (
+  return () => (
     <>
       <MenuV2.Item onSelect={() => props.onRenameNamedGroup(namedID, group.title)}>
         {props.language.t("common.rename")}
@@ -312,23 +312,25 @@ function mobileClusterMenu(props: HomeSessionsViewProps, group: HomeSessionGroup
   )
 }
 
-function HomeMobileContextMenu(props: { menu?: JSX.Element; children: JSX.Element; suppressClick: { current: boolean } }) {
+function HomeMobileContextMenu(props: {
+  menu?: () => JSX.Element
+  children: JSX.Element
+  suppressClick: { current: boolean }
+}) {
   return (
-    <Show when={props.menu} fallback={props.children}>
-      {(menu) => (
-        <MenuV2.Context
-          onOpenChange={(open) => {
-            if (open) props.suppressClick.current = true
-          }}
-        >
-          <MenuV2.Context.Trigger as="div" class="w-full min-w-0">
-            {props.children}
-          </MenuV2.Context.Trigger>
-          <MenuV2.Context.Portal>
-            <MenuV2.Context.Content>{menu()}</MenuV2.Context.Content>
-          </MenuV2.Context.Portal>
-        </MenuV2.Context>
-      )}
+    <Show when={!!props.menu} fallback={props.children}>
+      <MenuV2.Context
+        onOpenChange={(open) => {
+          if (open) props.suppressClick.current = true
+        }}
+      >
+        <MenuV2.Context.Trigger as="div" class="w-full min-w-0">
+          {props.children}
+        </MenuV2.Context.Trigger>
+        <MenuV2.Context.Portal>
+          <MenuV2.Context.Content>{props.menu?.()}</MenuV2.Context.Content>
+        </MenuV2.Context.Portal>
+      </MenuV2.Context>
     </Show>
   )
 }
@@ -340,7 +342,7 @@ function HomeSessionMobileClusterHeader(props: {
   collapseLabel: string
   onSetRef: (element: HTMLDivElement) => void
   onToggle: () => void
-  menu?: JSX.Element
+  menu?: () => JSX.Element
 }) {
   const suppressClick = { current: false }
   return (
@@ -390,7 +392,7 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
   return (
     <HomeMobileContextMenu
       suppressClick={suppressClick}
-      menu={
+      menu={() => (
         <>
           <MenuV2.Item onSelect={() => props.onMoveSession(props.record.session)}>
             {props.language.t("home.sessions.namedGroup.move")}
@@ -415,7 +417,7 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
             {props.language.t("common.delete")}
           </MenuV2.Item>
         </>
-      }
+      )}
     >
     <button
       type="button"
