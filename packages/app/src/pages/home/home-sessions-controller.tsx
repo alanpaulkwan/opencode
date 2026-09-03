@@ -28,7 +28,12 @@ import { archiveHomeSession } from "../home-session-archive"
 import { deleteHomeSession, removedHomeSessionIDs } from "../home-session-delete"
 import type { HomeController } from "./home-controller"
 import { homeSessionNeedsAttention } from "./home-session-attention"
-import { groupHomeSessions, clusterHomeSessions, type HomeSessionGroup as GroupedHomeSessions } from "./home-session-groups"
+import {
+  groupHomeSessions,
+  clusterHomeSessions,
+  takeHomeClusterRecords,
+  type HomeSessionGroup as GroupedHomeSessions,
+} from "./home-session-groups"
 import {
   HomeNamedGroupDeleteDialog,
   HomeNamedGroupMoveDialog,
@@ -40,6 +45,8 @@ import { createHomeSessionClusterCollapse } from "./home-session-cluster-collaps
 import { lastSessionSnippet } from "./home-session-snippet"
 
 const HOME_SESSION_LIMIT = 64
+const HOME_CLUSTER_LIMIT = 16
+const HOME_CLUSTER_PER_DIRECTORY = 3
 export type HomeSessionRecord = {
   session: Session
   project: LocalProject
@@ -115,11 +122,18 @@ export function createHomeSessionsController(home: HomeController) {
   )
   const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
   const clusterRecords = createMemo(() =>
-    buildClusterSessionRecords({
-      sessions: indexedSessions,
-      projects: home.project.list,
-      projectByID,
-    }).slice(0, HOME_SESSION_LIMIT),
+    takeHomeClusterRecords({
+      records: buildClusterSessionRecords({
+        sessions: indexedSessions,
+        projects: home.project.list,
+        projectByID,
+      }),
+      id: (record) => record.session.id,
+      directory: (record) => pathKey(record.session.directory),
+      pinnedAt: pins.map(serverKey()),
+      limit: HOME_CLUSTER_LIMIT,
+      perDirectory: HOME_CLUSTER_PER_DIRECTORY,
+    }),
   )
   const attentionIDs = createMemo(() => {
     const ids = new Set<string>()

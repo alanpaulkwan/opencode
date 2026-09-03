@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { clusterHomeSessions, groupHomeSessions } from "./home-session-groups"
+import { clusterHomeSessions, groupHomeSessions, takeHomeClusterRecords } from "./home-session-groups"
 
 const titles = { pinned: "Pinned", attention: "Needs attention", older: "Older" }
 const id = (record: { id: string }) => record.id
@@ -122,5 +122,51 @@ describe("clusterHomeSessions", () => {
       ["named:ops", ["ops-new"]],
       ["named:research", ["research-old"]],
     ])
+  })
+})
+
+describe("takeHomeClusterRecords", () => {
+  const id = (record: { id: string }) => record.id
+  const directory = (record: { directory: string }) => record.directory
+
+  test("round-robins directories so one busy folder cannot fill the list", () => {
+    const records = [
+      { id: "hot-1", directory: "pipeline" },
+      { id: "hot-2", directory: "pipeline" },
+      { id: "hot-3", directory: "pipeline" },
+      { id: "hot-4", directory: "pipeline" },
+      { id: "other-1", directory: "research" },
+      { id: "other-2", directory: "research" },
+    ]
+    expect(
+      takeHomeClusterRecords({
+        records,
+        id,
+        directory,
+        pinnedAt: {},
+        limit: 16,
+        perDirectory: 3,
+      }).map((item) => item.id),
+    ).toEqual(["hot-1", "other-1", "hot-2", "other-2", "hot-3"])
+  })
+
+  test("keeps pinned sessions even when their directory is already full", () => {
+    const records = [
+      { id: "hot-1", directory: "pipeline" },
+      { id: "pin", directory: "pipeline" },
+      { id: "hot-2", directory: "pipeline" },
+      { id: "hot-3", directory: "pipeline" },
+      { id: "other-1", directory: "research" },
+    ]
+    expect(
+      takeHomeClusterRecords({
+        records,
+        id,
+        directory,
+        pinnedAt: { pin: 9 },
+        limit: 4,
+        perDirectory: 1,
+      }).map((item) => item.id),
+    ).toEqual(["pin", "hot-1", "other-1"])
   })
 })

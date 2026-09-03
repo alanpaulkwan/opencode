@@ -57,6 +57,52 @@ export function groupHomeSessions<T>(input: {
   ].filter((group) => group.sessions.length > 0)
 }
 
+export function takeHomeClusterRecords<T>(input: {
+  records: T[]
+  id: (record: T) => string
+  directory: (record: T) => string
+  pinnedAt: Readonly<Record<string, number>>
+  limit: number
+  perDirectory: number
+}): T[] {
+  const pinned: T[] = []
+  const rest: T[] = []
+  for (const record of input.records) {
+    if (input.pinnedAt[input.id(record)]) pinned.push(record)
+    else rest.push(record)
+  }
+  pinned.sort((a, b) => (input.pinnedAt[input.id(b)] ?? 0) - (input.pinnedAt[input.id(a)] ?? 0))
+
+  const queues = new Map<string, T[]>()
+  const order: string[] = []
+  for (const record of rest) {
+    const key = input.directory(record)
+    const queue = queues.get(key)
+    if (queue) {
+      if (queue.length < input.perDirectory) queue.push(record)
+      continue
+    }
+    queues.set(key, [record])
+    order.push(key)
+  }
+
+  const mixed: T[] = []
+  const room = Math.max(0, input.limit - pinned.length)
+  while (mixed.length < room) {
+    let added = false
+    for (const key of order) {
+      const next = queues.get(key)?.shift()
+      if (!next) continue
+      mixed.push(next)
+      added = true
+      if (mixed.length >= room) break
+    }
+    if (!added) break
+  }
+
+  return [...pinned, ...mixed]
+}
+
 export function clusterHomeSessions<T>(input: {
   records: T[]
   id: (record: T) => string
