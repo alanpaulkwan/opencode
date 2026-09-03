@@ -242,7 +242,7 @@ export function createHomeSessionsController(home: HomeController) {
     session: {
       showProjectName: () => !home.project.selected(),
       server: () => home.selection.value().server,
-      canCreate: () => !!home.project.newSession(),
+      canCreate: () => !!home.project.newSession() || clusterRecords().length > 0,
       canArchive: () => !!home.server.focusedContext(),
       isPinned: (session: Session) => pins.isPinned(home.selection.value().server, session.id),
       pin: (session: Session) => pins.toggle(home.selection.value().server, session.id),
@@ -262,7 +262,16 @@ export function createHomeSessionsController(home: HomeController) {
         )
       },
       needsAttention: (session: Session) => attentionIDs().has(session.id),
-      create: home.project.openNewSession,
+      create: () => {
+        if (home.project.newSession()) {
+          home.project.openNewSession()
+          return
+        }
+        const record = clusterRecords()[0]
+        const conn = home.server.focused()
+        if (!record || !conn) return
+        home.project.openProjectNewSession(conn, record.project.worktree)
+      },
       open: (session: Session, options?: OpenSessionOptions) => {
         const directoryKey = pathKey(session.directory)
         const project =
