@@ -107,9 +107,8 @@ export function createHomeSessionsController(home: HomeController) {
   )
   const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
   const clusterRecords = createMemo(() =>
-    buildHomeSessionRecords({
+    buildClusterSessionRecords({
       sessions: indexedSessions,
-      projectDirectories: allProjectDirectories,
       projects: home.project.list,
       projectByID,
     }).slice(0, HOME_SESSION_LIMIT),
@@ -392,6 +391,30 @@ export function createHomeSessionsController(home: HomeController) {
         sessionHasOpenTab(tabs.store, home.selection.value().server, record.session),
     },
   }
+}
+
+function buildClusterSessionRecords(input: {
+  sessions: () => Session[]
+  projects: () => LocalProject[]
+  projectByID: () => Map<string, LocalProject>
+}) {
+  return [...new Map(input.sessions().map((session) => [session.id, session] as const)).values()]
+    .sort(compareSessionTime)
+    .map((session) => {
+      const directory = pathKey(session.directory)
+      const project =
+        input
+          .projects()
+          .find(
+            (item) =>
+              pathKey(item.worktree) === directory || item.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
+          ) ??
+        projectForSession(session, input.projects(), input.projectByID()) ?? {
+          worktree: session.directory,
+          expanded: false,
+        }
+      return { session, project, projectName: displayName(project) }
+    })
 }
 
 function directories(project: LocalProject) {
