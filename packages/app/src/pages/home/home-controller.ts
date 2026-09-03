@@ -1,5 +1,5 @@
 import { useGlobal } from "@/context/global"
-import { type HomeProjectSelection, useLayout } from "@/context/layout"
+import { type HomeProjectSelection, type LocalProject, useLayout } from "@/context/layout"
 import { ServerConnection, useServer } from "@/context/server"
 import { useServerSync } from "@/context/server-sync"
 import { useTabs } from "@/context/tabs"
@@ -23,17 +23,28 @@ export function createHomeController() {
   })
   const focusedSync = () => focusedServerCtx()?.sync ?? sync()
   const projects = createMemo(() => focusedServerCtx()?.projects.list() ?? layout.projects.list())
+  const catalog = createMemo(() => {
+    const opened = projects()
+    const seen = new Set(opened.map((project) => project.worktree))
+    const extra: LocalProject[] = focusedSync()
+      .data.project.filter((project) => project.worktree && !seen.has(project.worktree))
+      .map((project) => ({ ...project, expanded: false }))
+    return extra.length === 0 ? opened : [...opened, ...extra]
+  })
   const recentlyClosed = createMemo(
     () => focusedServerCtx()?.projects.recentlyClosed() ?? layout.projects.recentlyClosed(),
   )
   const homedir = createMemo(() => focusedSync().data.path.home ?? "")
-  const selectedProject = createMemo(() => projects().find((project) => project.worktree === selection().directory))
-  const newSessionProject = createMemo(
-    () =>
+  const selectedProject = createMemo(() => catalog().find((project) => project.worktree === selection().directory))
+  const newSessionProject = createMemo(() => {
+    const list = catalog()
+    return (
       selectedProject() ??
-      projects().find((project) => project.worktree === focusedServerCtx()?.projects.last()) ??
-      projects()[0],
-  )
+      list.find((project) => project.worktree === focusedServerCtx()?.projects.last()) ??
+      list.find((project) => project.id === "global") ??
+      list[0]
+    )
+  })
 
   createEffect(() => {
     const list = global.servers.list()
@@ -44,6 +55,14 @@ export function createHomeController() {
 
   function setSelection(next: HomeProjectSelection) {
     layout.home.setSelection(next)
+  }
+
+  function knownDirectory(conn: ServerConnection.Any, directory: string) {
+    const ctx = global.ensureServerCtx(conn)
+    return (
+      ctx.projects.list().some((project) => project.worktree === directory) ||
+      ctx.sync.data.project.some((project) => project.worktree === directory)
+    )
   }
 
   function openProjectNewSession(conn: ServerConnection.Any, directory: string) {
@@ -77,6 +96,7 @@ export function createHomeController() {
     },
     project: {
       list: projects,
+      catalog,
       recentlyClosed,
       homedir,
       selected: selectedProject,
@@ -85,25 +105,15 @@ export function createHomeController() {
       select: (conn: ServerConnection.Any, directory: string) => {
         const key = ServerConnection.key(conn)
         if (global.servers.health[key]?.healthy === false) return
-        if (
-          !global
-            .ensureServerCtx(conn)
-            .projects.list()
-            .some((project) => project.worktree === directory)
-        )
-          return
+        if (!knownDirectory(conn, directory)) return
         setSelection(toggleHomeProjectSelection(selection(), key, directory))
       },
       pick: (conn: ServerConnection.Any, directory: string) => {
         const key = ServerConnection.key(conn)
         if (global.servers.health[key]?.healthy === false) return
-        if (
-          !global
-            .ensureServerCtx(conn)
-            .projects.list()
-            .some((project) => project.worktree === directory)
-        )
-          return
+        if (!knownDirectory(conn, directory)) return
+        global.ensureServerCtx(conn).projects.open(directory)
+        global.ensureServerCtx(conn).projects.touch(directory)
         setSelection({ server: key, directory })
       },
       add: (conn: ServerConnection.Any, directories: string[]) => {

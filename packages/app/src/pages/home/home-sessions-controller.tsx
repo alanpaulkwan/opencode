@@ -41,6 +41,7 @@ import {
 import { createHomeSessionNamedGroups } from "./home-session-named-groups"
 import { createHomeSessionPins } from "./home-session-pins"
 import { createHomeSessionClusterCollapse } from "./home-session-cluster-collapse"
+import { homeSessionMatchesProject } from "./home-session-project"
 import { lastSessionSnippet } from "./home-session-snippet"
 
 const HOME_SESSION_LIMIT = 64
@@ -115,6 +116,7 @@ export function createHomeSessionsController(home: HomeController) {
       projectDirectories,
       projects: home.project.list,
       projectByID,
+      selected: home.project.selected,
     }),
   )
   const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
@@ -504,20 +506,27 @@ function buildHomeSessionRecords(input: {
   projectDirectories: () => string[]
   projects: () => LocalProject[]
   projectByID: () => Map<string, LocalProject>
+  selected: () => LocalProject | undefined
 }) {
+  const selected = input.selected()
   const directories = new Set(input.projectDirectories().map(pathKey))
-  const sessions = input.sessions().filter((session) => directories.has(pathKey(session.directory)))
+  const sessions = input.sessions().filter((session) => {
+    if (selected) return homeSessionMatchesProject(session, selected)
+    return directories.has(pathKey(session.directory))
+  })
   return [...new Map(sessions.map((session) => [session.id, session] as const)).values()]
     .sort(compareSessionTime)
     .flatMap((session) => {
       const directory = pathKey(session.directory)
-      const project =
-        input
-          .projects()
-          .find(
-            (item) =>
-              pathKey(item.worktree) === directory || item.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
-          ) ?? projectForSession(session, input.projects(), input.projectByID())
+      const project = selected
+        ? selected
+        : (input
+            .projects()
+            .find(
+              (item) =>
+                pathKey(item.worktree) === directory ||
+                item.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
+            ) ?? projectForSession(session, input.projects(), input.projectByID()))
       if (!project) return []
       return { session, project, projectName: displayName(project) }
     })

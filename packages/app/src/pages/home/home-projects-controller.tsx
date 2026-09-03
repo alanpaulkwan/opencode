@@ -66,6 +66,7 @@ export function createHomeProjectsController(home: HomeController) {
     },
     project: {
       list: home.project.list,
+      catalog: home.project.catalog,
       recentlyClosed: home.project.recentlyClosed,
       homedir: home.project.homedir,
       select: home.project.select,

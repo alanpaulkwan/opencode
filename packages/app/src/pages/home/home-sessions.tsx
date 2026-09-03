@@ -77,9 +77,9 @@ export function HomeSessions(props: {
       project={() => {
         const directory = props.projects.selection.value().directory
         if (!directory) return
-        return props.projects.project.list().find((item) => item.worktree === directory)
+        return props.projects.project.catalog().find((item) => item.worktree === directory)
       }}
-      projects={props.projects.project.list}
+      projects={props.projects.project.catalog}
       onPickProject={(directory) => {
         const conn = focusedServer()
         if (conn) props.projects.project.pick(conn, directory)

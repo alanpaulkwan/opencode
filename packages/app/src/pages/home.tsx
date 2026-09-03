@@ -1,7 +1,6 @@
 import { createEffect, createMemo } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
-import { ServerConnection } from "@/context/server"
 import { createHomeController } from "./home/home-controller"
 import { createHomeProjectsController } from "./home/home-projects-controller"
 import { HomeUtilityNav } from "./home/home-projects-view"
@@ -26,7 +25,7 @@ export function NewHome() {
     const project = home.project.newSession()
     const conn = home.server.focused()
     if (!project || !conn) return
-    home.selection.set({ server: ServerConnection.key(conn), directory: project.worktree })
+    home.project.pick(conn, project.worktree)
   })
   return (
     <div
