@@ -127,22 +127,22 @@ describe("clusterHomeSessions", () => {
 
 describe("takeHomeClusterRecords", () => {
   const id = (record: { id: string }) => record.id
-  const directory = (record: { directory: string }) => record.directory
+  const projectKey = (record: { project: string }) => record.project
 
-  test("round-robins directories so one busy folder cannot fill the list", () => {
+  test("round-robins projects so one busy folder cannot fill the list", () => {
     const records = [
-      { id: "hot-1", directory: "pipeline" },
-      { id: "hot-2", directory: "pipeline" },
-      { id: "hot-3", directory: "pipeline" },
-      { id: "hot-4", directory: "pipeline" },
-      { id: "other-1", directory: "research" },
-      { id: "other-2", directory: "research" },
+      { id: "hot-1", project: "pipeline" },
+      { id: "hot-2", project: "pipeline" },
+      { id: "hot-3", project: "pipeline" },
+      { id: "hot-4", project: "pipeline" },
+      { id: "other-1", project: "research" },
+      { id: "other-2", project: "research" },
     ]
     expect(
       takeHomeClusterRecords({
         records,
         id,
-        directory,
+        projectKey,
         pinnedAt: {},
         limit: 16,
         perDirectory: 3,
@@ -150,19 +150,19 @@ describe("takeHomeClusterRecords", () => {
     ).toEqual(["hot-1", "other-1", "hot-2", "other-2", "hot-3"])
   })
 
-  test("keeps pinned sessions even when their directory is already full", () => {
+  test("keeps pinned sessions even when their project is already full", () => {
     const records = [
-      { id: "hot-1", directory: "pipeline" },
-      { id: "pin", directory: "pipeline" },
-      { id: "hot-2", directory: "pipeline" },
-      { id: "hot-3", directory: "pipeline" },
-      { id: "other-1", directory: "research" },
+      { id: "hot-1", project: "pipeline" },
+      { id: "pin", project: "pipeline" },
+      { id: "hot-2", project: "pipeline" },
+      { id: "hot-3", project: "pipeline" },
+      { id: "other-1", project: "research" },
     ]
     expect(
       takeHomeClusterRecords({
         records,
         id,
-        directory,
+        projectKey,
         pinnedAt: { pin: 9 },
         limit: 4,
         perDirectory: 1,

@@ -129,7 +129,7 @@ export function createHomeSessionsController(home: HomeController) {
         projectByID,
       }),
       id: (record) => record.session.id,
-      directory: (record) => pathKey(record.session.directory),
+      projectKey: (record) => record.session.projectID || pathKey(record.project.worktree),
       pinnedAt: pins.map(serverKey()),
       limit: HOME_CLUSTER_LIMIT,
       perDirectory: HOME_CLUSTER_PER_DIRECTORY,

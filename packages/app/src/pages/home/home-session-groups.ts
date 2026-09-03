@@ -60,7 +60,7 @@ export function groupHomeSessions<T>(input: {
 export function takeHomeClusterRecords<T>(input: {
   records: T[]
   id: (record: T) => string
-  directory: (record: T) => string
+  projectKey: (record: T) => string
   pinnedAt: Readonly<Record<string, number>>
   limit: number
   perDirectory: number
@@ -76,7 +76,7 @@ export function takeHomeClusterRecords<T>(input: {
   const queues = new Map<string, T[]>()
   const order: string[] = []
   for (const record of rest) {
-    const key = input.directory(record)
+    const key = input.projectKey(record)
     const queue = queues.get(key)
     if (queue) {
       if (queue.length < input.perDirectory) queue.push(record)
