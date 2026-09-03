@@ -106,17 +106,21 @@ export function takeHomeClusterRecords<T>(input: {
 export function clusterHomeSessions<T>(input: {
   records: T[]
   id: (record: T) => string
+  active: ReadonlySet<string>
   namedGroup: (record: T) => HomeNamedGroupRef | undefined
   namedGroups: ReadonlyArray<HomeNamedGroupRef>
-  ungroupedTitle: string
+  activeTitle: string
+  recentTitle: string
   pinnedAt: Readonly<Record<string, number>>
   pinnedTitle: string
 }): HomeSessionGroup<T>[] {
   const pinned: T[] = []
+  const active: T[] = []
   const rest: T[] = []
 
   for (const record of input.records) {
     if (input.pinnedAt[input.id(record)]) pinned.push(record)
+    else if (input.active.has(input.id(record))) active.push(record)
     else rest.push(record)
   }
 
@@ -148,12 +152,13 @@ export function clusterHomeSessions<T>(input: {
     ...(pinned.length > 0
       ? [{ id: HOME_SESSION_PINNED_CLUSTER, title: input.pinnedTitle, sessions: pinned }]
       : []),
+    ...(active.length > 0 ? [{ id: "active", title: input.activeTitle, sessions: active }] : []),
     ...namedOrder.map((id) => {
       const cluster = named.get(id)!
       return { id: namedGroupClusterId(id), title: cluster.title, sessions: cluster.sessions }
     }),
     ...(ungrouped.length > 0
-      ? [{ id: HOME_SESSION_UNGROUPED_CLUSTER, title: input.ungroupedTitle, sessions: ungrouped }]
+      ? [{ id: HOME_SESSION_UNGROUPED_CLUSTER, title: input.recentTitle, sessions: ungrouped }]
       : []),
     ...empty.map((group) => ({
       id: namedGroupClusterId(group.id),

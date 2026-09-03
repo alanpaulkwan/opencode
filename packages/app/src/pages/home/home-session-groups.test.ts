@@ -71,9 +71,11 @@ describe("clusterHomeSessions", () => {
         { id: "research-old", group: "research", project: "residual_momentum_grok" },
       ],
       id,
+      active: new Set(),
       namedGroup,
       namedGroups: groups,
-      ungroupedTitle: "Ungrouped",
+      activeTitle: "Active",
+      recentTitle: "Recent",
       pinnedAt: {},
       pinnedTitle: "Pinned",
     })
@@ -90,14 +92,16 @@ describe("clusterHomeSessions", () => {
         { id: "b", project: "fintent_mna" },
       ],
       id,
+      active: new Set(),
       namedGroup,
       namedGroups: groups,
-      ungroupedTitle: "Ungrouped",
+      activeTitle: "Active",
+      recentTitle: "Recent",
       pinnedAt: {},
       pinnedTitle: "Pinned",
     })
     expect(clustered.map((group) => [group.id, group.title, group.sessions.map((item) => item.id)])).toEqual([
-      ["ungrouped", "Ungrouped", ["a", "b"]],
+      ["ungrouped", "Recent", ["a", "b"]],
       ["named:research", "research", []],
       ["named:ops", "active management", []],
     ])
@@ -111,9 +115,11 @@ describe("clusterHomeSessions", () => {
         { id: "research-old", group: "research" },
       ],
       id,
+      active: new Set(),
       namedGroup,
       namedGroups: groups,
-      ungroupedTitle: "Ungrouped",
+      activeTitle: "Active",
+      recentTitle: "Recent",
       pinnedAt: { pin: 5 },
       pinnedTitle: "Pinned",
     })
@@ -121,6 +127,30 @@ describe("clusterHomeSessions", () => {
       ["pinned", ["pin"]],
       ["named:ops", ["ops-new"]],
       ["named:research", ["research-old"]],
+    ])
+  })
+
+  test("puts active sessions ahead of named groups and recent sessions", () => {
+    const clustered = clusterHomeSessions({
+      records: [
+        { id: "running", group: "research" },
+        { id: "named", group: "research" },
+        { id: "recent" },
+      ],
+      id,
+      active: new Set(["running"]),
+      namedGroup,
+      namedGroups: groups,
+      activeTitle: "Active",
+      recentTitle: "Recent",
+      pinnedAt: {},
+      pinnedTitle: "Pinned",
+    })
+    expect(clustered.map((group) => [group.id, group.sessions.map((item) => item.id)])).toEqual([
+      ["active", ["running"]],
+      ["named:research", ["named"]],
+      ["ungrouped", ["recent"]],
+      ["named:ops", []],
     ])
   })
 })

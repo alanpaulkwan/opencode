@@ -158,13 +158,29 @@ export function createHomeSessionsController(home: HomeController) {
       },
     }),
   )
+  const activeIDs = createMemo(() => {
+    const server = home.selection.value().server
+    const ctx = home.server.focusedContext()
+    return new Set(
+      records()
+        .filter(
+          (record) =>
+            attentionIDs().has(record.session.id) ||
+            sessionHasOpenTab(tabs.store, server, record.session) ||
+            ctx?.sync.session.data.session_working(record.session.id),
+        )
+        .map((record) => record.session.id),
+    )
+  })
   const clusters = createMemo(() =>
     clusterHomeSessions({
       records: records(),
       id: (record) => record.session.id,
+      active: activeIDs(),
       namedGroup: (record) => named.groupOf(serverKey(), record.session.id),
       namedGroups: named.list(serverKey()),
-      ungroupedTitle: language.t("home.sessions.namedGroup.ungrouped"),
+      activeTitle: language.t("prompt.context.active"),
+      recentTitle: language.t("sidebar.project.recentSessions"),
       pinnedAt: pins.map(serverKey()),
       pinnedTitle: language.t("home.sessions.group.pinned"),
     }),
