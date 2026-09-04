@@ -194,4 +194,8 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Chọn tất cả các câu trả lời phù hợp",
   "ui.question.singleHint": "Chọn một câu trả lời",
   "ui.question.custom.placeholder": "Nhập câu trả lời của bạn...",
+  "ui.promptInput.voice": "Voice input",
+  "ui.promptInput.voice.stop": "Stop recording",
+  "ui.promptInput.voice.transcribing": "Transcribing...",
+  "ui.promptInput.voice.hold": "Hold to talk",
 }

@@ -194,4 +194,8 @@ export const dict = {
   "ui.question.multiHint": "ເລືອກຄຳຕອບທັງໝົດທີ່ນຳໃຊ້",
   "ui.question.singleHint": "ເລືອກຫນຶ່ງຄໍາຕອບ",
   "ui.question.custom.placeholder": "ພິມຄຳຕອບຂອງເຈົ້າ...",
+  "ui.promptInput.voice": "Voice input",
+  "ui.promptInput.voice.stop": "Stop recording",
+  "ui.promptInput.voice.transcribing": "Transcribing...",
+  "ui.promptInput.voice.hold": "Hold to talk",
 }

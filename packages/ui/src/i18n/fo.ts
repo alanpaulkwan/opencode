@@ -194,4 +194,8 @@ export const dict: Record<string, string> = {
   "ui.question.multiHint": "Vel øll svar, sum eru galdandi",
   "ui.question.singleHint": "Vel eitt svar",
   "ui.question.custom.placeholder": "Skriva títt svar...",
+  "ui.promptInput.voice": "Voice input",
+  "ui.promptInput.voice.stop": "Stop recording",
+  "ui.promptInput.voice.transcribing": "Transcribing...",
+  "ui.promptInput.voice.hold": "Hold to talk",
 }

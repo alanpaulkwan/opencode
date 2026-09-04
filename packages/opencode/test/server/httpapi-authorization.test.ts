@@ -115,6 +115,16 @@ describe("HttpApi authorization middleware", () => {
     }),
   )
 
+  itSecret.live("accepts a client token cookie without another basic-auth challenge", () =>
+    Effect.gen(function* () {
+      const clientCookie = ServerAuth.rememberClientCookie(token("opencode", "secret"))
+      const response = yield* getProbe({ cookie: clientCookie?.split(";")[0] ?? "" })
+
+      expect(response.status).toBe(200)
+      expect(response.headers["www-authenticate"]).toBeUndefined()
+    }),
+  )
+
   itKitSecret.live("respects configured basic auth username", () =>
     Effect.gen(function* () {
       const [defaultUser, configuredUser] = yield* Effect.all(

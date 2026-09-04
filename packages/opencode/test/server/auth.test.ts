@@ -64,8 +64,31 @@ describe("ServerAuth", () => {
     expect(cookie).toContain(`${ServerAuth.COOKIE_NAME}=`)
     expect(cookie).toContain("HttpOnly")
     expect(cookie).toContain("Secure")
-    expect(cookie).toContain("SameSite=Strict")
+    expect(cookie).toContain("SameSite=Lax")
     expect(ServerAuth.remembered(cookie?.split(";")[0], config)).toBe(true)
     expect(ServerAuth.remembered(cookie?.split(";")[0], { ...config, password: Option.some("changed") })).toBe(false)
+  })
+
+  test("recognizes client token cookie", () => {
+    const config = { password: Option.some("secret"), username: "alice" }
+    const token = Buffer.from("alice:secret").toString("base64")
+    const cookie = ServerAuth.rememberClientCookie(token)
+
+    expect(cookie).toContain(`${ServerAuth.CLIENT_COOKIE_NAME}=`)
+    expect(cookie).not.toContain("HttpOnly")
+    expect(cookie).toContain("SameSite=Lax")
+    expect(ServerAuth.remembered(cookie?.split(";")[0], config)).toBe(true)
+    expect(ServerAuth.remembered(cookie?.split(";")[0], { ...config, password: Option.some("changed") })).toBe(false)
+  })
+
+  test("allows insecure cookies when requested", () => {
+    const config = { password: Option.some("secret"), username: "alice" }
+    const cookie = ServerAuth.rememberCookie(config, { secure: false })
+    expect(cookie).not.toContain("Secure")
+    expect(cookie).toContain("SameSite=Lax")
+
+    const clientCookie = ServerAuth.rememberClientCookie("token", { secure: false })
+    expect(clientCookie).not.toContain("Secure")
+    expect(clientCookie).toContain("SameSite=Lax")
   })
 })

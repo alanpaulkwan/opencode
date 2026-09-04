@@ -38,6 +38,33 @@ describe("resolveServerList", () => {
     expect(ServerConnection.key(list[0]!) as string).toBe("https://server.example.test")
   })
 
+  test("lets startup auth_token credentials override a persisted same-url server with existing password", () => {
+    const list = resolveServerList({
+      stored: [
+        {
+          url: "https://server.example.test",
+          username: "opencode",
+          password: "old",
+        },
+      ],
+      props: [
+        {
+          type: "http",
+          authToken: true,
+          http: {
+            url: "https://server.example.test",
+            username: "opencode",
+            password: "new",
+          },
+        },
+      ],
+    })
+
+    expect(list).toHaveLength(1)
+    expect(list[0]?.http.password).toBe("new")
+    expect(list[0]?.type === "http" ? list[0].authToken : false).toBe(true)
+  })
+
   test("keeps persisted credentials when startup has no auth_token", () => {
     const list = resolveServerList({
       stored: [

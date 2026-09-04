@@ -1,5 +1,5 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import { type Accessor, batch, createMemo } from "solid-js"
+import { type Accessor, batch, createEffect, createMemo } from "solid-js"
 import { createStore, type SetStoreFunction, type Store } from "solid-js/store"
 import { Persist, persisted } from "@/utils/persist"
 import { pathKey } from "@/utils/path-key"
@@ -166,13 +166,18 @@ export function resolveServerList(input: {
     const key = ServerConnection.key(conn)
 
     const existing = deduped.get(key)
-    if (existing)
+    if (existing) {
+      const existingHttp = existing.type === "http" ? existing : undefined
+      const overrideWithStartup = !!existingHttp?.authToken
       deduped.set(key, {
         ...existing,
         ...conn,
-        http: { ...existing.http, ...conn.http },
+        authToken: existingHttp?.authToken,
+        http: overrideWithStartup
+          ? { ...conn.http, ...existingHttp.http }
+          : { ...existing.http, ...conn.http },
       })
-    else deduped.set(key, conn)
+    } else deduped.set(key, conn)
   }
 
   return [...deduped.values()]
@@ -316,6 +321,34 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       createMemo(() => ready() && !!state.active),
       { promise: ready.promise },
     )
+
+    createEffect(() => {
+      if (!ready()) return
+      for (const s of props.servers ?? []) {
+        if (s.type === "http" && s.authToken && s.http.password) {
+          const u = normalizeServerUrl(s.http.url)
+          if (!u) continue
+          const idx = store.list.findIndex((x) => url(x) === u)
+          const conn: ServerConnection.Http = {
+            type: "http",
+            http: {
+              url: u,
+              username: s.http.username,
+              password: s.http.password,
+            },
+          }
+          if (idx !== -1) {
+            const current = store.list[idx]
+            const curPass = typeof current === "object" && "http" in current ? current.http.password : undefined
+            if (curPass !== s.http.password) {
+              setStore("list", idx, conn)
+            }
+          } else {
+            setStore("list", store.list.length, conn)
+          }
+        }
+      }
+    })
 
     const scope = (key = state.active) => ServerScope.fromServerKey(key, props.canonicalLocalServer)
     const projects = createServerProjects({ scope, store, setStore })

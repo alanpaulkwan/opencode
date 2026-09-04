@@ -3,14 +3,27 @@ export * as ServerAuth from "./auth"
 import { ConfigService } from "@/effect/config-service"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import {
+  CLIENT_COOKIE_NAME,
   COOKIE_MAX_AGE,
+  COOKIE_MAX_AGE_DURATION,
   COOKIE_NAME,
+  rememberClientCookie,
   rememberCookie,
   remembered,
+  rememberedToken,
 } from "@opencode-ai/server/auth"
 import { Config as EffectConfig, Context, Option, Redacted } from "effect"
 
-export { COOKIE_MAX_AGE, COOKIE_NAME, rememberCookie, remembered }
+export {
+  CLIENT_COOKIE_NAME,
+  COOKIE_MAX_AGE,
+  COOKIE_MAX_AGE_DURATION,
+  COOKIE_NAME,
+  rememberClientCookie,
+  rememberCookie,
+  remembered,
+  rememberedToken,
+}
 
 export type Credentials = {
   password?: string

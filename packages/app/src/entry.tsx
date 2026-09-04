@@ -149,9 +149,44 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   })
 }
 
+const AUTH_TOKEN_STORAGE_KEY = "opencode.auth_token"
+const getAuthTokenStorageKey = () => `opencode.auth_token:${getCurrentUrl()}`
+
+const readAuthToken = () => getStorage(getAuthTokenStorageKey()) || getStorage(AUTH_TOKEN_STORAGE_KEY)
+
+const writeAuthToken = (token: string | null) => {
+  setStorage(getAuthTokenStorageKey(), token)
+  setStorage(AUTH_TOKEN_STORAGE_KEY, token)
+}
+
+function getClientCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined
+  const match = document.cookie
+    .split(";")
+    .map((v) => v.trim())
+    .find((v) => v.startsWith(`${name}=`))
+  return match ? match.slice(name.length + 1) : undefined
+}
+
+function setClientCookie(name: string, value: string) {
+  if (typeof document === "undefined") return
+  const secure = location.protocol === "https:" ? "; Secure" : ""
+  document.cookie = `${name}=${value}; Path=/; Max-Age=${60 * 60 * 24 * 400}${secure}; SameSite=Lax`
+}
+
 if (root instanceof HTMLElement) {
   void loadInitialLocale().then((locale) => {
-    const auth = authFromToken(new URLSearchParams(location.search).get("auth_token"))
+    const tokenFromUrl = new URLSearchParams(location.search).get("auth_token")
+    const tokenFromCookie = getClientCookie("opencode-auth-token")
+    const tokenFromStorage = readAuthToken()
+    const activeToken = tokenFromUrl || tokenFromCookie || tokenFromStorage || null
+    if (activeToken) {
+      writeAuthToken(activeToken)
+      if (!tokenFromCookie) {
+        setClientCookie("opencode-auth-token", activeToken)
+      }
+    }
+    const auth = authFromToken(activeToken)
     clearAuthToken()
     const server: ServerConnection.Http = {
       type: "http",
