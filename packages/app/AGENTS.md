@@ -5,7 +5,7 @@
 
 ## Debugging
 
-- NEVER try to restart the app, or the server process, EVER.
+- Do not restart existing app or server processes unless the user explicitly requests it and the process is a dedicated test instance (for example port 4010). Never restart shared local-dev servers on your own.
 
 ## Local Dev
 

@@ -76,6 +76,8 @@ export type HomeSessionsViewProps = {
   onOpenSession: (session: Session, options?: OpenSessionOptions) => void
   isPinned: (session: Session) => boolean
   onPinSession: (session: Session) => void
+  isWorking: (session: Session) => boolean
+  onAbortSession: (session: Session) => Promise<void>
   onArchiveSession: (session: Session) => Promise<void>
   onDeleteSession: (session: Session) => void
   onSetHoverTarget: (element: HTMLElement) => void
@@ -547,20 +549,37 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
   )
   const suppressClick = { current: false }
   const grouped = () => props.sessionNamedGroup(props.record.session)
+  const isWorking = () => props.isWorking(props.record.session)
 
   return (
     <HomeSessionSwipe
-      canArchive={props.canArchiveSession()}
+      canArchive={props.canArchiveSession() || isWorking()}
       openLabel={props.language.t("common.open")}
-      archiveLabel={props.language.t("common.archive")}
+      archiveLabel={isWorking() ? (props.language.t("common.stop") ?? "Stop") : props.language.t("common.archive")}
       suppressClick={suppressClick}
       onOpen={() => props.onOpenSession(props.record.session)}
-      onArchive={() => void props.onArchiveSession(props.record.session)}
+      onArchive={() => {
+        if (isWorking()) {
+          void props.onAbortSession(props.record.session)
+        } else {
+          void props.onArchiveSession(props.record.session)
+        }
+      }}
     >
     <HomeMobileContextMenu
       suppressClick={suppressClick}
       menu={() => (
         <>
+          <Show when={isWorking()}>
+            <MenuV2.Item
+              data-action="home-session-abort"
+              class="text-red-500 font-semibold"
+              onSelect={() => void props.onAbortSession(props.record.session)}
+            >
+              {props.language.t("home.sessions.stop") ?? "Stop session"}
+            </MenuV2.Item>
+            <MenuV2.Separator />
+          </Show>
           <MenuV2.Item onSelect={() => props.onMoveSession(props.record.session)}>
             {props.language.t("home.sessions.namedGroup.move")}
           </MenuV2.Item>
@@ -639,6 +658,22 @@ function HomeSessionMobileRow(props: HomeSessionsViewProps & { record: HomeSessi
           <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[16px] leading-5 text-v2-text-text-base [font-weight:600]">
             {title()}
           </span>
+          <Show when={isWorking()}>
+            <button
+              type="button"
+              data-action="home-session-abort"
+              class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-500 hover:bg-red-500/25 active:scale-95 transition"
+              aria-label={props.language.t("home.sessions.stop") ?? "Stop session"}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                suppressClick.current = true
+                void props.onAbortSession(props.record.session)
+              }}
+            >
+              <IconV2 name="stop" class="size-3" />
+            </button>
+          </Show>
           <span class="shrink-0 text-[12px] leading-4 text-v2-text-text-faint [font-weight:440]">{timestamp()}</span>
         </div>
         <Show when={snippet()}>
@@ -967,6 +1002,27 @@ function HomeSessionRow(props: HomeSessionsViewProps & { record: HomeSessionReco
           max-md:static max-md:translate-y-0 max-md:pr-1.5
         `}
       >
+        <Show when={props.isWorking(props.record.session)}>
+          <TooltipV2
+            class="flex shrink-0 items-center"
+            placement="bottom"
+            value={props.language.t("home.sessions.stop") ?? "Stop session"}
+          >
+            <IconButtonV2
+              data-action="home-session-abort"
+              variant="ghost"
+              size="large"
+              class="text-red-500 hover:text-red-400 dark:text-red-400 hover:bg-red-500/10"
+              icon={<IconV2 name="stop" />}
+              aria-label={props.language.t("home.sessions.stop") ?? "Stop session"}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                void props.onAbortSession(props.record.session)
+              }}
+            />
+          </TooltipV2>
+        </Show>
         <TooltipV2
           class="flex shrink-0 items-center"
           placement="bottom"

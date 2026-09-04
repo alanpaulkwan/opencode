@@ -40,6 +40,7 @@ import {
 } from "./home-session-named-group-dialogs"
 import { createHomeSessionNamedGroups } from "./home-session-named-groups"
 import { createHomeSessionPins } from "./home-session-pins"
+import { createHomeSessionSync } from "./home-session-sync"
 import { createHomeSessionClusterCollapse } from "./home-session-cluster-collapse"
 import { homeSessionMatchesProject } from "./home-session-project"
 import { lastSessionSnippet } from "./home-session-snippet"
@@ -62,18 +63,28 @@ export function createHomeSessionsController(home: HomeController) {
   const language = useLanguage()
   const notification = useNotification()
   const permission = usePermission()
-  const pins = createHomeSessionPins()
-  const named = createHomeSessionNamedGroups()
+  let sessionSync: ReturnType<typeof createHomeSessionSync> | undefined
+  const pins = createHomeSessionPins({ onChange: () => sessionSync?.push() })
+  const named = createHomeSessionNamedGroups({ onChange: () => sessionSync?.push() })
+  sessionSync = createHomeSessionSync({
+    server: home.server.focused,
+    named,
+    pins,
+  })
   const collapse = createHomeSessionClusterCollapse()
   const serverKey = () => home.selection.value().server
-  const allProjectDirectories = createMemo(() => home.project.list().flatMap(directories))
+  const effectiveProjects = createMemo(() => {
+    const list = home.project.list()
+    return list.length > 0 ? list : home.project.catalog()
+  })
+  const allProjectDirectories = createMemo(() => effectiveProjects().flatMap(directories))
   const projectDirectories = createMemo(() => {
     const project = home.project.selected()
     if (!project) return allProjectDirectories()
     return directories(project)
   })
   const projectByID = createMemo(
-    () => new Map(home.project.list().flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
+    () => new Map(home.project.catalog().flatMap((project) => (project.id ? [[project.id, project] as const] : []))),
   )
   const projectCatalog = home.project.catalog
   const homeSessions = () => home.server.focusedSync().homeSessions
@@ -115,7 +126,7 @@ export function createHomeSessionsController(home: HomeController) {
     buildHomeSessionRecords({
       sessions: indexedSessions,
       projectDirectories,
-      projects: home.project.list,
+      projects: effectiveProjects,
       projectCatalog,
       projectByID,
       selected: home.project.selected,
@@ -293,6 +304,35 @@ export function createHomeSessionsController(home: HomeController) {
       canArchive: () => !!home.server.focusedContext(),
       isPinned: (session: Session) => pins.isPinned(serverKey(), session.id),
       pin: (session: Session) => pins.toggle(serverKey(), session.id),
+      isWorking: (session: Session) => {
+        const ctx = home.server.focusedContext()
+        return !!ctx?.sync.session.data.session_working(session.id)
+      },
+      abort: async (session: Session) => {
+        const ctx = home.server.focusedContext()
+        if (!ctx) return
+        try {
+          await ctx.sdk.api.session.interrupt({ sessionID: session.id })
+          showToast({
+            title: language.t("home.sessions.stopped"),
+            variant: "success",
+          })
+        } catch {
+          try {
+            await ctx.sdk.client.session.abort({ sessionID: session.id })
+            showToast({
+              title: language.t("home.sessions.stopped"),
+              variant: "success",
+            })
+          } catch (cause) {
+            showToast({
+              title: language.t("common.requestFailed"),
+              description: errorMessage(cause, language.t("common.requestFailed")),
+              variant: "error",
+            })
+          }
+        }
+      },
       isCollapsed: collapse.isCollapsed,
       toggleCollapsed: collapse.toggle,
       sessionNamedGroup: (session: Session) => named.groupOf(serverKey(), session.id),
@@ -394,7 +434,16 @@ export function createHomeSessionsController(home: HomeController) {
               (item) =>
                 pathKey(item.worktree) === directoryKey ||
                 item.sandboxes?.some((sandbox) => pathKey(sandbox) === directoryKey),
-            ) ?? projectForSession(session, home.project.list(), projectByID())
+            ) ??
+          home.project
+            .catalog()
+            .find(
+              (item) =>
+                pathKey(item.worktree) === directoryKey ||
+                item.sandboxes?.some((sandbox) => pathKey(sandbox) === directoryKey),
+            ) ??
+          projectForSession(session, home.project.list(), projectByID()) ??
+          projectForSession(session, home.project.catalog())
         const conn = home.server.focused()
         if (!conn) return
         const directory = project?.worktree ?? session.directory
@@ -545,7 +594,16 @@ function buildHomeSessionRecords(input: {
               (item) =>
                 pathKey(item.worktree) === directory ||
                 item.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
-            ) ?? projectForSession(session, input.projects(), input.projectByID()))
+            ) ??
+            input
+              .projectCatalog()
+              .find(
+                (item) =>
+                  pathKey(item.worktree) === directory ||
+                  item.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
+              ) ??
+            projectForSession(session, input.projects(), input.projectByID()) ??
+            projectForSession(session, input.projectCatalog()))
       if (!project) return []
       return { session, project, projectName: displayName(project) }
     })

@@ -89,6 +89,8 @@ export function HomeSessions(props: {
         if (conn) props.projects.project.choose(conn)
       }}
       onCreateNamedGroup={props.sessions.session.createNamedGroup}
+      isWorking={props.sessions.session.isWorking}
+      onAbortSession={props.sessions.session.abort}
     />
   )
 }
