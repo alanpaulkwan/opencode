@@ -73,6 +73,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
   const params = useParams()
   const useV2Titlebar = createMemo(() => settings.general.newLayoutDesigns())
   const mobile = createMediaQuery("(max-width: 767px)")
+  const wide = createMediaQuery("(min-width: 1280px)")
   const bottom = createMemo(() => useV2Titlebar() && mobile() && settings.general.mobileTitlebarPosition() === "bottom")
 
   const mac = createMemo(() => platform.platform === "desktop" && platform.os === "macos")
@@ -455,6 +456,26 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                     aria-pressed={layout.route().type === "home"}
                   />
                 </TooltipV2>
+
+                <Show when={web()}>
+                  <TooltipV2
+                    placement="bottom"
+                    value={language.t("command.sidebar.toggle")}
+                    class="shrink-0"
+                  >
+                    <IconButtonV2
+                      type="button"
+                      variant="ghost-muted"
+                      size="large"
+                      class="!w-9 shrink-0"
+                      data-action="web-agent-sidebar-toggle"
+                      icon={<Icon name={wide() && layout.sidebar.opened() ? "sidebar-active" : "sidebar"} size="small" />}
+                      onClick={() => (wide() ? layout.sidebar.toggle() : layout.mobileSidebar.toggle())}
+                      aria-label={language.t("command.sidebar.toggle")}
+                      aria-expanded={wide() ? layout.sidebar.opened() : layout.mobileSidebar.opened()}
+                    />
+                  </TooltipV2>
+                </Show>
 
                 <TitlebarTabStrip
                   tabs={tabsStore}
