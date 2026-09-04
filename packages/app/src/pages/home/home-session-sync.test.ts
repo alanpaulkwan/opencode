@@ -31,7 +31,7 @@ describe("home-session-sync", () => {
         ok: true,
         json: async () => mockData,
       } as Response
-    }) as typeof fetch
+    }) as unknown as typeof fetch
 
     const result = await fetchSessionMeta(serverHttp, mockFetch)
     expect(requestedUrl).toBe("http://localhost:4010/api/session-meta")
@@ -49,7 +49,7 @@ describe("home-session-sync", () => {
       method = init?.method
       body = init?.body
       return { ok: true } as Response
-    }) as typeof fetch
+    }) as unknown as typeof fetch
 
     const payload = {
       namedGroups: {
@@ -84,7 +84,7 @@ describe("home-session-sync", () => {
           ok: true,
           json: async () => mockData,
         } as Response
-      }) as typeof fetch
+      }) as unknown as typeof fetch
 
       const mockConn: ServerConnection.Any = {
         type: "http",

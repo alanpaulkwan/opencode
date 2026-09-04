@@ -40,17 +40,17 @@ export async function readSessionMeta(): Promise<{ namedGroups: HomeNamedGroupsB
       : []
     const members: Record<string, string> =
       typeof parsed?.namedGroups?.members === "object" && parsed.namedGroups.members !== null
-        ? Object.fromEntries(
+        ? (Object.fromEntries(
             Object.entries(parsed.namedGroups.members).filter(
               ([k, v]) => typeof k === "string" && typeof v === "string",
             ),
-          )
+          ) as Record<string, string>)
         : {}
     const pins: HomeSessionPinMap =
       typeof parsed?.pins === "object" && parsed.pins !== null
-        ? Object.fromEntries(
+        ? (Object.fromEntries(
             Object.entries(parsed.pins).filter(([k, v]) => typeof k === "string" && typeof v === "number"),
-          )
+          ) as HomeSessionPinMap)
         : {}
     return {
       namedGroups: { groups, members },
